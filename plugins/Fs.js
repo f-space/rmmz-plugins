@@ -2,7 +2,7 @@
  * @target MZ
  * @plugindesc
  * Basic function library for RPG Maker plugins.
- * Version: 0.1.0
+ * Version: 0.1.1
  * @author F_
  * @url https://github.com/f-space/rmmz-plugins
  * 
