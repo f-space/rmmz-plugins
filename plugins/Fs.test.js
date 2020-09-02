@@ -562,9 +562,9 @@ describe("N", () => {
 	});
 
 	test("regexp", () => {
-		const RE = /^(\d+)..(\d+)/;
+		const RE = /^(\d+)\.\.(\d+)/;
 		const parser = (_, [, fst, snd]) => [fst, snd].map(x => Number.parseInt(x, 10));
-		expect(G.parse("24..42", N.regexp('slice', RE, parser))).toEqual([24, 42]);
+		expect(G.parse("24..42", N.regexp('range', RE, parser))).toEqual([24, 42]);
 	});
 
 	test("spacing", () => {
