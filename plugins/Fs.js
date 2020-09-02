@@ -547,8 +547,9 @@
 		const oneOf = parsers => parsers.reduceRight((acc, x) => orElse(x, () => acc), miss());
 
 		const make = archetype => {
-			const arrayOf = parsers => data => parsers.map(parser => parser(data));
-			const structOf = parsers => data => Object.fromEntries(parsers.map(([key, parser]) => [key, parser(data)]));
+			const arrayOf = parsers => parsers.reduce((xs, x) => andThen(xs, xs => map(x, x => [...xs, x])), succeed([]));
+			const structOf = parsers => map(arrayOf(parsers.map(entry)), Object.fromEntries);
+			const entry = ([key, parser]) => map(parser, value => [key, value]);
 
 			if (typeof archetype === 'function') {
 				return archetype;
