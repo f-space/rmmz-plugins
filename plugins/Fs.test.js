@@ -538,6 +538,10 @@ describe("M", () => {
 		expect(M.make(M.attr("foo", N.make(N.boolean)))(meta())).toEqual(R.ok(O.none()));
 		expect(M.make(M.flag("foo"))(meta({ foo: "true" })))
 			.toEqual(R.err({ type: 'notation', expected: 'flag', name: "foo", value: "true" }));
+		expect(M.make([M.flag("foo"), M.attr("bar", N.make(N.boolean))])(meta({ foo: true, bar: "true" })))
+			.toEqual(R.ok(O.some([true, true])));
+		expect(M.make({ foo: M.flag("foo"), bar: M.attr("bar", N.make(N.boolean)) })(meta({ foo: true, bar: "true" })))
+			.toEqual(R.ok(O.some({ foo: true, bar: true })));
 	});
 
 	test("meta", () => {
