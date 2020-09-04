@@ -335,7 +335,7 @@
 		const and = parser => context => R.match(parser(context), () => R.ok([null, context]), error => R.err(andError(context, error)));
 		const not = parser => context => R.match(parser(context), value => R.err(notError(context, value)), () => R.ok([null, context]));
 		const validate = (parser, validator) =>
-			context => R.andThen(parser(context), value => R.mapErr(validator(value), cause => validationError(context, cause)));
+			context => andThen(parser, value => R.match(validator(value), succeed, cause => fail(validationError(context, cause))))(context);
 
 		const memo = parser => context => {
 			const { position, cache } = context;
