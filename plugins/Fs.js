@@ -312,7 +312,7 @@
 		};
 
 		const succeed = value => context => R.ok([value, context]);
-		const fail = value => () => R.err(value);
+		const fail = error => () => R.err(error);
 		const andThen = (parser, fn) => context => R.andThen(parser(context), ([value, context]) => fn(value)(context));
 		const orElse = (parser, fn) => context => R.orElse(parser(context), error => fn(error)(context));
 		const map = (parser, fn) => andThen(parser, value => succeed(fn(value)));
