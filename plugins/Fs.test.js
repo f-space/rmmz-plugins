@@ -375,6 +375,7 @@ describe("G", () => {
 
 	test("validate", () => {
 		const validator = c => c === "a" ? R.ok(c) : R.err("not-a");
+		expect(G.parse("a", G.validate(char("a"), validator))).toBe("a");
 		expect(() => G.parse("b", G.validate(char("b"), validator))).toThrow("not-a");
 	});
 
@@ -454,6 +455,7 @@ describe("P", () => {
 
 	test("validate", () => {
 		const validator = x => x % 2 !== 0 ? R.ok(x) : R.err("even");
+		expect(P.parse("1", P.validate(P.integer, validator))).toBe(1);
 		expect(() => P.parse("42", P.validate(P.integer, validator))).toThrow("even");
 	});
 
