@@ -380,7 +380,7 @@
 				return innerError !== undefined ? defaultErrorFormatter(innerError) : "Dead end.";
 			};
 			const embody = cause => typeof cause === 'function' ? cause() : cause;
-			switch (error.type) {
+			switch (error?.type) {
 				case 'token': return `Failed to parse '${error.name}' token: ${S.debug(embody(error.cause))}`;
 				case 'eof': return `Excessive token exists: ${rest(error.context)}`;
 				case 'path': return `No valid path exists. <<< ${message(error)}`;
@@ -487,7 +487,7 @@
 
 		const defaultErrorFormatter = error => {
 			const dots = s => S.ellipsis(s, 32);
-			switch (error.type) {
+			switch (error?.type) {
 				case 'syntax': return `Failed to parse parameter as '${error.context}': ${dots(error.source)}`;
 				case 'json': return `Failed to parse parameter as JSON: "${error.inner.message}"`;
 				case 'validation': return `Validation failed: ${S.debug(error.cause)}`;
@@ -584,7 +584,7 @@
 		};
 
 		const defaultErrorFormatter = error => {
-			switch (error.type) {
+			switch (error?.type) {
 				case 'notation':
 					switch (error.expected) {
 						case 'flag': return `'${error.name}' metadata does not accept any arguments.`;
