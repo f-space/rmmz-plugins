@@ -757,8 +757,8 @@
 		const propWithMap = defaultValue => {
 			const store = new Map();
 			const getter = owner => (key => store.has(key) ? store.get(key) : defaultValue)(id(owner));
-			const setter = (owner, value) => store.set(id(owner), value);
-			const deleter = owner => store.delete(id(owner));
+			const setter = (owner, value) => void store.set(id(owner), value);
+			const deleter = owner => void store.delete(id(owner));
 			const clearer = () => store.clear();
 			return [getter, setter, deleter, clearer];
 		};
@@ -766,8 +766,8 @@
 		const propWithWeakMap = defaultValue => {
 			const store = new WeakMap();
 			const getter = owner => (key => store.has(key) ? store.get(key) : defaultValue)(id(owner));
-			const setter = (owner, value) => store.set(id(owner), value);
-			const deleter = owner => store.delete(id(owner));
+			const setter = (owner, value) => void store.set(id(owner), value);
+			const deleter = owner => void store.delete(id(owner));
 			return [getter, setter, deleter];
 		};
 
