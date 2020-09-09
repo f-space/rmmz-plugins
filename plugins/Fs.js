@@ -611,8 +611,8 @@
 			withDefault,
 			oneOf,
 			make,
-			meta,
 			parse,
+			meta,
 			defaultErrorFormatter,
 		};
 	})();
