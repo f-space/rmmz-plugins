@@ -677,7 +677,7 @@
 		const join_ = ([first, ...rest], delimiter) => G.seqOf([first, G.seqOf(rest.map(item => G.seqOf([delimiter, item])))]);
 		const list = parser => chain(parser, spaces);
 		const tuple = parsers => join(parsers, spaces);
-		const withDefault = (parser, defaultValue) => map(G.optional(parser), option => O.withDefault(option, defaultValue));
+		const withDefault = (parser, value) => map(G.optional(parser), option => O.withDefault(option, value));
 
 		const make = parser => G.make(G.andThen(trim(parser), value => G.map(G.eof(), () => value)));
 
