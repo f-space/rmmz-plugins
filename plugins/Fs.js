@@ -333,7 +333,7 @@
 		const many = parser => map(loop(L.nil(), parser), toArray);
 		const many1 = parser => map(andThen(parser, value => loop(L.singleton(value), parser)), toArray);
 		const and = parser => context => R.match(parser(context), () => R.ok([null, context]), error => R.err(andError(context, error)));
-		const not = parser => context => R.match(parser(context), value => R.err(notError(context, value)), () => R.ok([null, context]));
+		const not = parser => context => R.match(parser(context), ([value]) => R.err(notError(context, value)), () => R.ok([null, context]));
 		const validate = (parser, validator) =>
 			context => andThen(parser, value => R.match(validator(value), succeed, cause => fail(validationError(context, cause))))(context);
 
