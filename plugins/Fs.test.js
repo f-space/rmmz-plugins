@@ -285,8 +285,8 @@ describe("G", () => {
 	const char = c => G.token(c, (s, i) => s[i] === c ? R.ok([c, i + 1]) : R.err(() => `"${s[i]}" !== "${c}"`));
 	const str = str => G.token(str, (s, i) =>
 		s.slice(i).startsWith(str)
-			? R.ok([s.slice(i, i + str.length)])
-			: R.err(() => `"${S.dots(s, 10)}" !== "${str}"`)
+			? R.ok([s.slice(i, i + str.length), i + str.length])
+			: R.err(() => `"${S.ellipsis(s, 10)}" !== "${str}"`)
 	);
 	const elem = x => G.token(S.debug(x), (s, i) =>
 		U.simpleEqual(s[i], x)
@@ -532,7 +532,7 @@ describe("M", () => {
 		expect(M.parse(meta({ foo: "12" }), parser)).toBe(12);
 		expect(M.parse(meta({ bar: "34" }), parser)).toBe(34);
 		expect(M.parse(meta(), parser)).toBeUndefined();
-		expect(() => M.parse(meta({ foo: true, bar: "34" }))).toThrow();
+		expect(() => M.parse(meta({ foo: true, bar: "34" }), parser)).toThrow();
 	});
 
 	test("make", () => {
