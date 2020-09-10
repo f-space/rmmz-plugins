@@ -1,6 +1,16 @@
+import "./JestExt";
 import Fs from "./Fs";
 
 const { O, R, S, U, G } = Fs;
+
+const parse = <S, T, E>(source: S, parser: Fs.G.Parser<S, T, E>) => G.make(parser)(source);
+
+const tokenError = (position: number, name: string) => ({ type: 'token', context: { position }, name });
+const eofError = (position: number) => ({ type: 'eof', context: { position } });
+const pathError = <E>(position: number, errors: E[]) => ({ type: 'path', context: { position }, errors });
+const andError = <E>(position: number, error: E) => ({ type: 'and', context: { position }, error });
+const notError = <T>(position: number, value: T) => ({ type: 'not', context: { position }, value });
+const validationError = <C>(position: number, cause: C) => ({ type: 'validation', context: { position }, cause });
 
 const char = (c: string) => G.token(c, (s: string, i) =>
 	s[i] === c ? R.ok([c, i + 1]) : R.err(() => `"${s[i]}" !== "${c}"`)
@@ -19,100 +29,101 @@ const elem = <T>(x: T) => G.token(S.debug(x), (s: readonly T[], i) =>
 );
 
 test("token", () => {
-	expect(G.parse("foo", str("foo"))).toBe("foo");
-	expect(() => G.parse("bar", str("foo"))).toThrow();
-	expect(G.parse([{ foo: 42 }], elem({ foo: 42 }))).toEqual({ foo: 42 });
-	expect(() => G.parse([{ bar: 42 }], elem({ foo: 42 }) as any)).toThrow();
+	expect(parse("foo", str("foo"))).toEqualOk("foo");
+	expect(parse("bar", str("foo"))).toMatchErr(tokenError(0, "foo"));
+	expect(parse([{ foo: 42 }], elem({ foo: 42 }))).toEqualOk({ foo: 42 });
+	expect(parse([{ bar: 42 }], elem({ foo: 42 }) as any)).toMatchErr(tokenError(0, "{ foo: 42 }"));
 });
 
 test("eof", () => {
-	expect(G.parse("", G.eof())).toBe(null);
-	expect(() => G.parse(" ", G.eof())).toThrow();
-	expect(G.parse([], G.eof())).toBe(null);
-	expect(() => G.parse([,], G.eof())).toThrow();
+	expect(parse("", G.eof())).toEqualOk(null);
+	expect(parse(" ", G.eof())).toMatchErr(eofError(0));
+	expect(parse([], G.eof())).toEqualOk(null);
+	expect(parse([,], G.eof())).toMatchErr(eofError(0));
 });
 
 test("succeed", () => {
-	expect(G.parse("", G.succeed(42))).toBe(42);
+	expect(parse("", G.succeed(42))).toEqualOk(42);
 });
 
 test("fail", () => {
-	expect(() => G.parse("", G.fail(42))).toThrow();
+	expect(parse("", G.fail(42))).toMatchErr(42);
 });
 
 test("andThen", () => {
-	expect(G.parse("ab", G.andThen(char("a"), () => char("b")))).toBe("b");
+	expect(parse("ab", G.andThen(char("a"), () => char("b")))).toEqualOk("b");
 });
 
 test("orElse", () => {
-	expect(G.parse("ab", G.orElse(char("b"), () => char("a")))).toBe("a");
+	expect(parse("ab", G.orElse(char("b"), () => char("a")))).toEqualOk("a");
 });
 
 test("map", () => {
-	expect(G.parse("a", G.map(char("a"), c => c + "b"))).toBe("ab");
+	expect(parse("a", G.map(char("a"), c => c + "b"))).toEqualOk("ab");
 });
 
 test("mapError", () => {
-	expect(() => G.parse("a", G.mapError(char("b"), () => "foo"))).toThrow("foo");
+	expect(parse("a", G.mapError(char("b"), () => "foo"))).toMatchErr("foo");
 });
 
 test("seqOf", () => {
-	expect(G.parse("abc", G.seqOf([char("a"), char("b"), char("c")]))).toEqual(["a", "b", "c"]);
-	expect(() => G.parse("abd", G.seqOf([char("a"), char("b"), char("c")]))).toThrow();
+	expect(parse("abc", G.seqOf([char("a"), char("b"), char("c")]))).toEqualOk(["a", "b", "c"]);
+	expect(parse("abd", G.seqOf([char("a"), char("b"), char("c")]))).toMatchErr(tokenError(2, "c"));
 });
 
 test("oneOf", () => {
-	expect(G.parse("c", G.oneOf([char("a"), char("b"), char("c")]))).toBe("c");
-	expect(() => G.parse("d", G.oneOf([char("a"), char("b"), char("c")]))).toThrow();
+	expect(parse("c", G.oneOf([char("a"), char("b"), char("c")]))).toEqualOk("c");
+	expect(parse("d", G.oneOf([char("a"), char("b"), char("c")]))).toMatchErr(
+		pathError(0, [tokenError(0, "a"), tokenError(0, "b"), tokenError(0, "c")])
+	);
 });
 
 test("optional", () => {
-	expect(G.parse("", G.optional(char("a")))).toEqual(O.none());
-	expect(G.parse("a", G.optional(char("a")))).toEqual(O.some("a"));
+	expect(parse("", G.optional(char("a")))).toEqualOk(O.none());
+	expect(parse("a", G.optional(char("a")))).toEqualOk(O.some("a"));
 });
 
 test("many", () => {
-	expect(G.parse("", G.many(char("a")))).toEqual([]);
-	expect(G.parse("a", G.many(char("a")))).toEqual(["a"]);
-	expect(G.parse("aaa", G.many(char("a")))).toEqual(["a", "a", "a"]);
+	expect(parse("", G.many(char("a")))).toEqualOk([]);
+	expect(parse("a", G.many(char("a")))).toEqualOk(["a"]);
+	expect(parse("aaa", G.many(char("a")))).toEqualOk(["a", "a", "a"]);
 });
 
 test("many1", () => {
-	expect(G.parse("a", G.many1(char("a")))).toEqual(["a"]);
-	expect(G.parse("aaa", G.many1(char("a")))).toEqual(["a", "a", "a"]);
-	expect(() => G.parse("", G.many1(char("a")))).toThrow();
+	expect(parse("a", G.many1(char("a")))).toEqualOk(["a"]);
+	expect(parse("aaa", G.many1(char("a")))).toEqualOk(["a", "a", "a"]);
+	expect(parse("", G.many1(char("a")))).toMatchErr(tokenError(0, "a"));
 });
 
 test("and", () => {
-	expect(G.parse("a", G.and(char("a")))).toBe(null);
-	expect(G.parse("a", G.andThen(G.and(char("a")), () => char("a")))).toBe("a");
-	expect(() => G.parse("b", G.and(char("a")))).toThrow();
-	expect(() => G.parse("b", G.andThen(G.and(char("a")), () => char("b")))).toThrow();
+	expect(parse("a", G.and(char("a")))).toEqualOk(null);
+	expect(parse("a", G.andThen(G.and(char("a")), () => char("a")))).toEqualOk("a");
+	expect(parse("b", G.and(char("a")))).toMatchErr(andError(0, tokenError(0, "a")));
+	expect(parse("b", G.andThen(G.and(char("a")), () => char("b")))).toMatchErr(andError(0, tokenError(0, "a")));
 });
 
 test("not", () => {
-	expect(G.parse("b", G.not(char("a")))).toBe(null);
-	expect(G.parse("b", G.andThen(G.not(char("a")), () => char("b")))).toBe("b");
-	expect(() => G.parse("a", G.not(char("a")))).toThrow();
-	expect(() => G.parse("a", G.andThen(G.not(char("a")), () => char("a")))).toThrow();
+	expect(parse("b", G.not(char("a")))).toEqualOk(null);
+	expect(parse("b", G.andThen(G.not(char("a")), () => char("b")))).toEqualOk("b");
+	expect(parse("a", G.not(char("a")))).toMatchErr(notError(0, "a"));
+	expect(parse("a", G.andThen(G.not(char("a")), () => char("a")))).toMatchErr(notError(0, "a"));
 });
 
 test("validate", () => {
 	const validator = (c: string) => c === "a" ? R.ok(c) : R.err("not-a");
-	expect(G.parse("a", G.validate(char("a"), validator))).toBe("a");
-	expect(() => G.parse("b", G.validate(char("b"), validator))).toThrow("not-a");
+	expect(parse("a", G.validate(char("a"), validator))).toEqualOk("a");
+	expect(parse("b", G.validate(char("b"), validator))).toMatchErr(validationError(0, "not-a"));
 });
 
 test("memo", () => {
 	const p = G.memo(char("a"));
-	expect(G.parse("a", G.memo(char("a")))).toBe("a");
-	expect(G.parse("ab", G.memo(G.seqOf([G.memo(char("a")), G.memo(char("b"))])))).toEqual(["a", "b"]);
-	expect(G.parse("b", G.memo(G.oneOf([G.memo(char("a")), G.memo(char("b"))])))).toBe("b");
-	expect(G.parse("ba", G.oneOf([p, G.seqOf([char("b"), p])]))).toEqual(["b", "a"]);
+	expect(parse("a", G.memo(char("a")))).toEqualOk("a");
+	expect(parse("ab", G.memo(G.seqOf([G.memo(char("a")), G.memo(char("b"))])))).toEqualOk(["a", "b"]);
+	expect(parse("b", G.memo(G.oneOf([G.memo(char("a")), G.memo(char("b"))])))).toEqualOk("b");
+	expect(parse("ba", G.oneOf([p, G.seqOf([char("b"), p])]))).toEqualOk(["b", "a"]);
 });
 
-test("make", () => {
-	expect(G.make(char("a"))("a")).toEqual(R.ok("a"));
-	expect(G.make(G.mapError(char("a"), e => ({ ...e, cause: e.cause() })))("b"))
-		.toMatchObject(R.err({ type: 'token', name: "a", cause: '"b" !== "a"' }));
+test("parse", () => {
+	expect(G.parse("a", char("a"))).toEqual("a");
+	expect(() => G.parse("b", char("a"), e => e.type)).toThrow(new Error(tokenError(0, "a").type));
 });
