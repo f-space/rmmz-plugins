@@ -656,13 +656,13 @@
 		const identity = x => x;
 		const makeLexError = s => s.length !== 0 ? `'${S.ellipsis(s, 16)}' is unexpected.` : "No more letters.";
 
-		const spacing = regexp('spacing', RE_SPACING);
-		const spaces = regexp('spaces', RE_SPACES);
-		const natural = regexp('natural', RE_NATURAL, s => Number.parseInt(s, 10));
-		const integer = regexp('integer', RE_INTEGER, s => Number.parseInt(s, 10));
-		const number = regexp('number', RE_NUMBER, s => Number.parseFloat(s));
-		const boolean = regexp('boolean', RE_BOOLEAN, s => s === 'true');
-		const text = regexp('text', RE_TEXT, value => value.slice(1, -1).replace(/`(.)/gu, "$1"));
+		const spacing = regexp("spacing", RE_SPACING);
+		const spaces = regexp("spaces", RE_SPACES);
+		const natural = regexp("natural", RE_NATURAL, s => Number.parseInt(s, 10));
+		const integer = regexp("integer", RE_INTEGER, s => Number.parseInt(s, 10));
+		const number = regexp("number", RE_NUMBER, s => Number.parseFloat(s));
+		const boolean = regexp("boolean", RE_BOOLEAN, s => s === 'true');
+		const text = regexp("text", RE_TEXT, value => value.slice(1, -1).replace(/`(.)/gu, "$1"));
 
 		const between = (begin, end, inner) => map(G.seqOf([begin, inner, end]), value => value[1]);
 		const trim = parser => between(spacing, spacing, parser);
