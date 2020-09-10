@@ -290,12 +290,12 @@
 	})();
 
 	const G = (() => {
-		const tokenError = (context, name, cause) => ({ type: 'token', context, name, cause });
-		const eofError = (context) => ({ type: 'eof', context });
-		const pathError = (context, errors) => ({ type: 'path', context, errors });
-		const andError = (context, error) => ({ type: 'and', context, error });
-		const notError = (context, value) => ({ type: 'not', context, value });
-		const validationError = (context, cause) => ({ type: 'validation', context, cause });
+		const tokenError = ({ cache, ...context }, name, cause) => ({ type: 'token', context, name, cause });
+		const eofError = ({ cache, ...context }) => ({ type: 'eof', context });
+		const pathError = ({ cache, ...context }, errors) => ({ type: 'path', context, errors });
+		const andError = ({ cache, ...context }, error) => ({ type: 'and', context, error });
+		const notError = ({ cache, ...context }, value) => ({ type: 'not', context, value });
+		const validationError = ({ cache, ...context }, cause) => ({ type: 'validation', context, cause });
 
 		const token = (name, accept) => context => {
 			const { source, position } = context;
