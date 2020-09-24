@@ -315,27 +315,24 @@
 		const fail = error => () => R.err(error);
 		const andThen = (parser, fn) => context => R.andThen(parser(context), ([value, context]) => fn(value)(context));
 		const orElse = (parser, fn) => context => R.orElse(parser(context), error => fn(error)(context));
-		const map = (parser, fn) => andThen(parser, value => succeed(fn(value)));
-		const mapError = (parser, fn) => orElse(parser, error => fail(fn(error)));
+		const map = (parser, fn) => context => R.map(parser(context), ([value, context]) => [fn(value), context]);
+		const mapError = (parser, fn) => context => R.mapErr(parser(context), fn);
+		const wrapError = (parser, fn) => context => mapError(parser, error => fn(context, error))(context);
+		const try_ = fn => (...args) => R.match(fn(...args), succeed, fail);
 
 		const sequence = (a, b) => andThen(a, v1 => map(b, v2 => L.cons(v2, v1)));
 		const choice = (a, b) => orElse(a, e1 => mapError(b, e2 => L.cons(e2, e1)));
-		const loop = (pred, parser) => {
-			const rec = acc => orElse(andThen(parser, value => rec(L.cons(value, acc))), () => succeed(acc));
-			return rec(pred);
-		};
+		const loop = (parser, acc) => orElse(andThen(parser, value => loop(parser, L.cons(value, acc))), () => succeed(acc));
 		const toArray = list => L.toArray(L.reverse(list));
-		const wrapError = (parser, fn) => context => mapError(parser, error => fn(context, error))(context);
 
 		const seqOf = parsers => map(parsers.reduce(sequence, succeed(L.nil())), toArray);
 		const oneOf = parsers => wrapError(mapError(parsers.reduce(choice, fail(L.nil())), toArray), pathError);
 		const optional = parser => choice(map(parser, O.some), succeed(O.none()));
-		const many = parser => map(loop(L.nil(), parser), toArray);
-		const many1 = parser => map(andThen(parser, value => loop(L.singleton(value), parser)), toArray);
+		const many = parser => map(loop(parser, L.nil()), toArray);
+		const many1 = parser => map(andThen(parser, value => loop(parser, L.singleton(value))), toArray);
 		const and = parser => context => R.match(parser(context), () => R.ok([null, context]), error => R.err(andError(context, error)));
 		const not = parser => context => R.match(parser(context), ([value]) => R.err(notError(context, value)), () => R.ok([null, context]));
-		const validate = (parser, validator) =>
-			wrapError(andThen(parser, value => R.match(validator(value), succeed, fail)), validationError);
+		const validate = (parser, validator) => wrapError(andThen(parser, try_(validator)), validationError);
 
 		const memo = parser => context => {
 			const { position, cache } = context;
