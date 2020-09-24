@@ -183,10 +183,10 @@ declare namespace P {
 	type Parser<T, E> = (s: string) => R.Result<T, E>;
 	type EntryParser<K extends string, T, E> = (object: object) => R.Result<[K, T], E>;
 
-	type SyntaxError<K> = {
-		type: 'syntax';
+	type FormatError<K> = {
+		type: 'format';
 		source: string;
-		context: K;
+		expected: K;
 	};
 	type JsonError = {
 		type: 'json';
@@ -203,10 +203,10 @@ declare namespace P {
 	type Struct<P> = StructRec<P, {}, never>;
 	// type StructRec<P, T, E> = P extends [EntryParser<infer K, infer U, infer F>, ...infer Rest]
 	// 	? StructRec<Rest, T & Record<K, U>, E | F>
-	// 	: Parser<T, E | JsonError | SyntaxError<"struct">>;
+	// 	: Parser<T, E | JsonError | FormatError<"struct">>;
 	type StructRec<P, T, E> = P extends [EntryParser<infer K, infer U, infer F>, ...infer Rest]
 		? { 0: StructRec<Rest, T & Record<K, U>, E | F>; }[Zero<P>]
-		: Parser<T, E | JsonError | SyntaxError<"struct">>;
+		: Parser<T, E | JsonError | FormatError<"struct">>;
 	type Archetype = Parser<any, any> | readonly [Archetype] | { [key: string]: Archetype; };
 	type Make<A> = Parser<MakeValue<A>, MakeError<A>>;
 	type MakeValue<A> =
@@ -215,12 +215,12 @@ declare namespace P {
 		A extends { [key: string]: Archetype; } ? { [K in keyof A]: MakeValue<A[K]> } : never;
 	// type MakeError<A> =
 	// 	A extends Parser<any, infer E> ? E :
-	// 	A extends readonly [Archetype] ? MakeError<A[0]> | JsonError | SyntaxError<"array"> :
-	// 	A extends { [key: string]: Archetype; } ? MakeError<A[keyof A]> | JsonError | SyntaxError<"struct"> : never;
+	// 	A extends readonly [Archetype] ? MakeError<A[0]> | JsonError | FormatError<"array"> :
+	// 	A extends { [key: string]: Archetype; } ? MakeError<A[keyof A]> | JsonError | FormatError<"struct"> : never;
 	type MakeError<A> =
 		A extends Parser<any, infer E> ? E :
-		A extends readonly [Archetype] ? { 0: MakeError<A[0]> | JsonError | SyntaxError<"array">; }[Zero<A>] :
-		A extends { [key: string]: Archetype; } ? { 0: MakeError<A[keyof A]> | JsonError | SyntaxError<"struct">; }[Zero<A>] : never;
+		A extends readonly [Archetype] ? { 0: MakeError<A[0]> | JsonError | FormatError<"array">; }[Zero<A>] :
+		A extends { [key: string]: Archetype; } ? { 0: MakeError<A[keyof A]> | JsonError | FormatError<"struct">; }[Zero<A>] : never;
 	type ErrorFormatter<E> = (error: E) => string;
 
 	const succeed: <T>(value: T) => Parser<T, never>;
@@ -231,14 +231,14 @@ declare namespace P {
 	const mapError: <T, E, F>(parser: Parser<T, E>, fn: (error: E) => F) => Parser<T, F>;
 	const withDefault: <T, E>(parser: Parser<T, E>, value: T) => Parser<T, E>;
 	const validate: <T, U, E, V>(parser: Parser<T, E>, validator: Validator<T, U, V>) => Parser<U, E | ValidationError<V>>;
-	const empty: Parser<undefined, SyntaxError<"empty">>;
-	const integer: Parser<number, SyntaxError<"integer">>;
-	const number: Parser<number, SyntaxError<"number">>;
+	const empty: Parser<undefined, FormatError<"empty">>;
+	const integer: Parser<number, FormatError<"integer">>;
+	const number: Parser<number, FormatError<"number">>;
 	const string: Parser<string, never>;
-	const boolean: Parser<boolean, SyntaxError<"boolean">>;
-	const custom: <T, K>(fn: (s: string) => R.Result<T, K>) => Parser<T, SyntaxError<K>>;
+	const boolean: Parser<boolean, FormatError<"boolean">>;
+	const custom: <T, K>(fn: (s: string) => R.Result<T, K>) => Parser<T, FormatError<K>>;
 	const json: Parser<unknown, JsonError>;
-	const array: <T, E>(parser: Parser<T, E>) => Parser<T[], E | JsonError | SyntaxError<"array">>;
+	const array: <T, E>(parser: Parser<T, E>) => Parser<T[], E | JsonError | FormatError<"array">>;
 	const struct: <P extends readonly EntryParser<any, any, any>[]>(parsers: readonly [...P]) => Struct<P>;
 	const entry: <K extends string, T, E>(key: K, parser: Parser<T, E>) => EntryParser<K, T, E>;
 	const make: <A extends Archetype>(archetype: A) => Make<A>;

@@ -416,7 +416,7 @@
 		const RE_INTEGER = /^[+\-]?\d+$/;
 		const RE_NUMBER = /^[+\-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+\-]?\d+)?$/i;
 
-		const syntaxError = (source, context) => ({ type: 'syntax', source, context });
+		const formatError = (source, expected) => ({ type: 'format', source, expected });
 		const jsonError = (source, inner) => ({ type: 'json', source, inner });
 		const validationError = (source, cause) => ({ type: 'validation', source, cause });
 
@@ -432,23 +432,23 @@
 		const withDefault = (parser, value) => orElse(map(empty, () => value), () => parser);
 		const validate = (parser, validator) => wrapError(andThen(parser, try_(validator)), validationError);
 
-		const empty = s => s === "" ? R.ok(undefined) : R.err(syntaxError(s, "empty"));
-		const integer = s => RE_INTEGER.test(s) ? R.ok(Number.parseInt(s, 10)) : R.err(syntaxError(s, "integer"));
-		const number = s => RE_NUMBER.test(s) ? R.ok(Number.parseFloat(s)) : R.err(syntaxError(s, "number"));
+		const empty = s => s === "" ? R.ok(undefined) : R.err(formatError(s, "empty"));
+		const integer = s => RE_INTEGER.test(s) ? R.ok(Number.parseInt(s, 10)) : R.err(formatError(s, "integer"));
+		const number = s => RE_NUMBER.test(s) ? R.ok(Number.parseFloat(s)) : R.err(formatError(s, "number"));
 		const string = s => R.ok(s);
-		const boolean = s => s === 'true' ? R.ok(true) : s === 'false' ? R.ok(false) : R.err(syntaxError(s, "boolean"));
-		const custom = fn => s => R.mapErr(fn(s), context => syntaxError(s, context));
+		const boolean = s => s === 'true' ? R.ok(true) : s === 'false' ? R.ok(false) : R.err(formatError(s, "boolean"));
+		const custom = fn => s => R.mapErr(fn(s), expected => formatError(s, expected));
 
 		const json = s => { try { return R.ok(JSON.parse(s)); } catch (e) { return R.err(jsonError(s, e)); } };
 		const array = parser => andThen(json, value => s =>
 			Array.isArray(value)
 				? value.reduce((result, x) => R.andThen(result, xs => R.map(parser(x), x => [...xs, x])), R.ok([]))
-				: R.err(syntaxError(s, "array"))
+				: R.err(formatError(s, "array"))
 		);
 		const struct = parsers => andThen(json, value => s =>
 			typeof value === 'object' && value !== null && !Array.isArray(value)
 				? R.map(entries(parsers)(value), Object.fromEntries)
-				: R.err(syntaxError(s, "struct"))
+				: R.err(formatError(s, "struct"))
 		);
 		const entries = parsers => object =>
 			parsers.reduce((result, parser) => R.andThen(result, xs => R.map(parser(object), x => [...xs, x])), R.ok([]));
@@ -489,7 +489,7 @@
 		const defaultErrorFormatter = error => {
 			const dots = s => S.ellipsis(s, 32);
 			switch (error?.type) {
-				case 'syntax': return `Failed to parse parameter as '${error.context}': ${dots(error.source)}`;
+				case 'format': return `Failed to parse parameter as '${error.expected}': ${dots(error.source)}`;
 				case 'json': return `Failed to parse parameter as JSON: "${error.inner.message}"`;
 				case 'validation': return `Validation failed: ${S.debug(error.cause)}`;
 				default: return `Unknown error: ${S.debug(error)}`;
