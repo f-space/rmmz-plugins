@@ -47,7 +47,7 @@ test("succeed", () => {
 });
 
 test("fail", () => {
-	expect(parse("", G.fail(42))).toMatchErr(42);
+	expect(parse("", G.fail(42))).toEqualErr(42);
 });
 
 test("andThen", () => {

@@ -31,7 +31,7 @@ test("miss", () => {
 });
 
 test("fail", () => {
-	expect(parse({}, M.fail(42))).toMatchErr(42);
+	expect(parse({}, M.fail(42))).toEqualErr(42);
 });
 
 test("andThen", () => {
