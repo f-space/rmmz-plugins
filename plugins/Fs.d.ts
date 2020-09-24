@@ -207,12 +207,12 @@ declare namespace P {
 		A extends { [key: string]: Archetype; } ? { [K in keyof A]: MakeValue<A[K]> } : never;
 	// type MakeError<A> =
 	// 	A extends Parser<any, infer E> ? E :
-	// 	A extends readonly [Archetype] ? MakeError<A[0]> | JsonError :
-	// 	A extends { [key: string]: Archetype; } ? MakeError<A[keyof A]> | JsonError : never;
+	// 	A extends readonly [Archetype] ? MakeError<A[0]> | JsonError | SyntaxError<"array"> :
+	// 	A extends { [key: string]: Archetype; } ? MakeError<A[keyof A]> | JsonError | SyntaxError<"object"> : never;
 	type MakeError<A> =
 		A extends Parser<any, infer E> ? E :
-		A extends readonly [Archetype] ? { 0: MakeError<A[0]> | JsonError; }[Zero<A>] :
-		A extends { [key: string]: Archetype; } ? { 0: MakeError<A[keyof A]> | JsonError; }[Zero<A>] : never;
+		A extends readonly [Archetype] ? { 0: MakeError<A[0]> | JsonError | SyntaxError<"array">; }[Zero<A>] :
+		A extends { [key: string]: Archetype; } ? { 0: MakeError<A[keyof A]> | JsonError | SyntaxError<"object">; }[Zero<A>] : never;
 	type ErrorFormatter<E> = (error: E) => string;
 
 	const map: <T, U, E>(parser: Parser<T, E>, fn: (value: T) => U) => Parser<U, E>;
