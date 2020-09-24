@@ -181,6 +181,7 @@ declare namespace G {
 type P = typeof P;
 declare namespace P {
 	type Parser<T, E> = (s: string) => R.Result<T, E>;
+	type EntryParser<K extends string, T, E> = (object: object) => R.Result<[K, T], E>;
 
 	type SyntaxError<K> = {
 		type: 'syntax';
@@ -199,6 +200,13 @@ declare namespace P {
 	};
 
 	type Validator<T, U, V> = (value: T) => R.Result<U, V>;
+	type Struct<P> = StructRec<P, {}, never>;
+	// type StructRec<P, T, E> = P extends [EntryParser<infer K, infer U, infer F>, ...infer Rest]
+	// 	? StructRec<Rest, T & Record<K, U>, E | F>
+	// 	: Parser<T, E | JsonError | SyntaxError<"object">>;
+	type StructRec<P, T, E> = P extends [EntryParser<infer K, infer U, infer F>, ...infer Rest]
+		? { 0: StructRec<Rest, T & Record<K, U>, E | F>; }[Zero<P>]
+		: Parser<T, E | JsonError | SyntaxError<"object">>;
 	type Archetype = Parser<any, any> | readonly [Archetype] | { [key: string]: Archetype; };
 	type Make<A> = Parser<MakeValue<A>, MakeError<A>>;
 	type MakeValue<A> =
@@ -215,15 +223,24 @@ declare namespace P {
 		A extends { [key: string]: Archetype; } ? { 0: MakeError<A[keyof A]> | JsonError | SyntaxError<"object">; }[Zero<A>] : never;
 	type ErrorFormatter<E> = (error: E) => string;
 
+	const succeed: <T>(value: T) => Parser<T, never>;
+	const fail: <E>(error: E) => Parser<never, E>;
+	const andThen: <T, U, E, F>(parser: Parser<T, E>, fn: (value: T) => Parser<U, F>) => Parser<U, E | F>;
+	const orElse: <T, U, E, F>(parser: Parser<T, E>, fn: (error: E) => Parser<U, F>) => Parser<T | U, F>;
 	const map: <T, U, E>(parser: Parser<T, E>, fn: (value: T) => U) => Parser<U, E>;
 	const mapError: <T, E, F>(parser: Parser<T, E>, fn: (error: E) => F) => Parser<T, F>;
 	const withDefault: <T, E>(parser: Parser<T, E>, value: T) => Parser<T, E>;
 	const validate: <T, U, E, V>(parser: Parser<T, E>, validator: Validator<T, U, V>) => Parser<U, E | ValidationError<V>>;
+	const empty: Parser<undefined, SyntaxError<"empty">>;
 	const integer: Parser<number, SyntaxError<"integer">>;
 	const number: Parser<number, SyntaxError<"number">>;
 	const string: Parser<string, never>;
 	const boolean: Parser<boolean, SyntaxError<"boolean">>;
 	const custom: <T, K>(fn: (s: string) => R.Result<T, K>) => Parser<T, SyntaxError<K>>;
+	const json: Parser<unknown, JsonError>;
+	const array: <T, E>(parser: Parser<T, E>) => Parser<T[], E | JsonError | SyntaxError<"array">>;
+	const struct: <P extends readonly EntryParser<any, any, any>[]>(parsers: readonly [...P]) => Struct<P>;
+	const entry: <K extends string, T, E>(key: K, parser: Parser<T, E>) => EntryParser<K, T, E>;
 	const make: <A extends Archetype>(archetype: A) => Make<A>;
 	const parse: <A extends Archetype>(
 		s: string,
