@@ -448,7 +448,7 @@
 		const struct = parsers => andThen(json, value => s =>
 			typeof value === 'object' && value !== null && !Array.isArray(value)
 				? R.map(entries(parsers)(value), Object.fromEntries)
-				: R.err(syntaxError(s, "object"))
+				: R.err(syntaxError(s, "struct"))
 		);
 		const entries = parsers => object =>
 			parsers.reduce((result, parser) => R.andThen(result, xs => R.map(parser(object), x => [...xs, x])), R.ok([]));

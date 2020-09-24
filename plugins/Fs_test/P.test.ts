@@ -116,7 +116,7 @@ test("struct", () => {
 		])),
 	]))).toEqualOk({ a: { b: "c" } });
 	expect(parse(`{"foo":"bar"}`, P.struct([P.entry("foo", P.integer)]))).toMatchErr(syntaxError("integer"));
-	expect(parse(`[]`, P.struct([]))).toMatchErr(syntaxError("object"));
+	expect(parse(`[]`, P.struct([]))).toMatchErr(syntaxError("struct"));
 	expect(parse("", P.struct([P.entry("foo", P.integer)]))).toMatchErr(jsonError());
 });
 

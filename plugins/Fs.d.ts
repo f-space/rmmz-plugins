@@ -203,10 +203,10 @@ declare namespace P {
 	type Struct<P> = StructRec<P, {}, never>;
 	// type StructRec<P, T, E> = P extends [EntryParser<infer K, infer U, infer F>, ...infer Rest]
 	// 	? StructRec<Rest, T & Record<K, U>, E | F>
-	// 	: Parser<T, E | JsonError | SyntaxError<"object">>;
+	// 	: Parser<T, E | JsonError | SyntaxError<"struct">>;
 	type StructRec<P, T, E> = P extends [EntryParser<infer K, infer U, infer F>, ...infer Rest]
 		? { 0: StructRec<Rest, T & Record<K, U>, E | F>; }[Zero<P>]
-		: Parser<T, E | JsonError | SyntaxError<"object">>;
+		: Parser<T, E | JsonError | SyntaxError<"struct">>;
 	type Archetype = Parser<any, any> | readonly [Archetype] | { [key: string]: Archetype; };
 	type Make<A> = Parser<MakeValue<A>, MakeError<A>>;
 	type MakeValue<A> =
@@ -216,11 +216,11 @@ declare namespace P {
 	// type MakeError<A> =
 	// 	A extends Parser<any, infer E> ? E :
 	// 	A extends readonly [Archetype] ? MakeError<A[0]> | JsonError | SyntaxError<"array"> :
-	// 	A extends { [key: string]: Archetype; } ? MakeError<A[keyof A]> | JsonError | SyntaxError<"object"> : never;
+	// 	A extends { [key: string]: Archetype; } ? MakeError<A[keyof A]> | JsonError | SyntaxError<"struct"> : never;
 	type MakeError<A> =
 		A extends Parser<any, infer E> ? E :
 		A extends readonly [Archetype] ? { 0: MakeError<A[0]> | JsonError | SyntaxError<"array">; }[Zero<A>] :
-		A extends { [key: string]: Archetype; } ? { 0: MakeError<A[keyof A]> | JsonError | SyntaxError<"object">; }[Zero<A>] : never;
+		A extends { [key: string]: Archetype; } ? { 0: MakeError<A[keyof A]> | JsonError | SyntaxError<"struct">; }[Zero<A>] : never;
 	type ErrorFormatter<E> = (error: E) => string;
 
 	const succeed: <T>(value: T) => Parser<T, never>;
