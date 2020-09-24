@@ -420,48 +420,52 @@
 		const jsonError = (source, inner) => ({ type: 'json', source, inner });
 		const validationError = (source, cause) => ({ type: 'validation', source, cause });
 
+		const succeed = value => () => R.ok(value);
+		const fail = error => () => R.err(error);
+		const andThen = (parser, fn) => s => R.andThen(parser(s), value => fn(value)(s));
+		const orElse = (parser, fn) => s => R.orElse(parser(s), error => fn(error)(s));
+		const map = (parser, fn) => s => R.map(parser(s), fn);
+		const mapError = (parser, fn) => s => R.mapErr(parser(s), fn);
+		const wrapError = (parser, fn) => s => mapError(parser, error => fn(s, error))(s);
+		const try_ = fn => (...args) => R.match(fn(...args), succeed, fail);
+
+		const withDefault = (parser, value) => orElse(map(empty, () => value), () => parser);
+		const validate = (parser, validator) => wrapError(andThen(parser, try_(validator)), validationError);
+
+		const empty = s => s === "" ? R.ok(undefined) : R.err(syntaxError(s, "empty"));
 		const integer = s => RE_INTEGER.test(s) ? R.ok(Number.parseInt(s, 10)) : R.err(syntaxError(s, "integer"));
 		const number = s => RE_NUMBER.test(s) ? R.ok(Number.parseFloat(s)) : R.err(syntaxError(s, "number"));
 		const string = s => R.ok(s);
 		const boolean = s => s === 'true' ? R.ok(true) : s === 'false' ? R.ok(false) : R.err(syntaxError(s, "boolean"));
 		const custom = fn => s => R.mapErr(fn(s), context => syntaxError(s, context));
 
-		const withDefault = (parser, value) => s => s !== "" ? parser(s) : R.ok(value);
-		const map = (parser, fn) => s => R.map(parser(s), fn);
-		const mapError = (parser, fn) => s => R.mapErr(parser(s), fn);
-		const validate = (parser, validator) =>
-			s => R.andThen(parser(s), value => R.mapErr(validator(value), cause => validationError(s, cause)));
+		const json = s => { try { return R.ok(JSON.parse(s)); } catch (e) { return R.err(jsonError(s, e)); } };
+		const array = parser => andThen(json, value => s =>
+			Array.isArray(value)
+				? value.reduce((result, x) => R.andThen(result, xs => R.map(parser(x), x => [...xs, x])), R.ok([]))
+				: R.err(syntaxError(s, "array"))
+		);
+		const struct = parsers => andThen(json, value => s =>
+			typeof value === 'object' && value !== null && !Array.isArray(value)
+				? R.map(entries(parsers)(value), Object.fromEntries)
+				: R.err(syntaxError(s, "object"))
+		);
+		const entries = parsers => object =>
+			parsers.reduce((result, parser) => R.andThen(result, xs => R.map(parser(object), x => [...xs, x])), R.ok([]));
+		const entry = (key, parser) => object => map(parser, value => [key, value])(object[key] ?? "");
 
 		const make = archetype => {
-			const parseJSON = s => {
-				try {
-					return R.ok(JSON.parse(s));
-				} catch (e) {
-					return R.err(jsonError(s, e));
-				}
-			};
-			const fromJSON = fn => s => R.andThen(parseJSON(s), value => fn(s, value));
-			const arrayOf = parser => array => transpose(array.map(parser));
-			const structOf = parsers => struct => R.map(parseEntries(struct, parsers), Object.fromEntries);
-			const parseEntries = (struct, parsers) => transpose(parsers.map(entry => parseEntry(struct, entry)));
-			const parseEntry = (struct, [key, parser]) => R.map(parser(ref(struct, key)), value => [key, value]);
-			const ref = (struct, key) => struct[key] ?? "";
-			const transpose = array => array.find(R.isErr) ?? R.ok(array.map(R.unwrap));
-			const isObject = x => typeof x === 'object' && x !== null;
-
 			if (typeof archetype === 'function') {
 				return archetype;
 			} else if (typeof archetype === 'object' && archetype !== null) {
 				if (Array.isArray(archetype)) {
 					if (archetype.length === 1) {
-						const parser = arrayOf(make(archetype[0]));
-						return fromJSON((s, v) => Array.isArray(v) ? parser(v) : R.err(syntaxError(s, "array")));
+						return array(make(archetype[0]));
 					} else {
 						throw new Error(`Archetype array must be a singleton: ${S.debug(archetype)}`);
 					}
 				} else {
-					const parser = structOf(Object.entries(archetype).map(([k, v]) => [k, make(v)]));
-					return fromJSON((s, v) => isObject(v) ? parser(v) : R.err(syntaxError(s, "object")));
+					return struct(Object.entries(archetype).map(([key, value]) => entry(key, make(value))));
 				}
 			} else {
 				throw new Error(`Invalid archetype item: ${S.debug(archetype)}`);
@@ -493,15 +497,15 @@
 		};
 
 		return {
+			map,
+			mapError,
+			withDefault,
+			validate,
 			integer,
 			number,
 			string,
 			boolean,
 			custom,
-			withDefault,
-			map,
-			mapError,
-			validate,
 			make,
 			parse,
 			parseAll,

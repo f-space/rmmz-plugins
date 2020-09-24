@@ -8,6 +8,27 @@ const syntaxError = <K extends string>(context: K) => ({ type: 'syntax', context
 const jsonError = () => ({ type: 'json' });
 const validationError = <V>(cause: V) => ({ type: 'validation', cause });
 
+test("map", () => {
+	expect(parse("42", P.map(P.integer, x => x * 10))).toEqualOk(420);
+	expect(parse("foo", P.map(P.integer, x => x * 10))).toMatchErr(syntaxError("integer"));
+});
+
+test("mapError", () => {
+	expect(parse("42", P.mapError(P.integer, e => e.type))).toEqualOk(42);
+	expect(parse("foo", P.mapError(P.integer, e => e.type))).toMatchErr(syntaxError("integer").type);
+});
+
+test("withDefault", () => {
+	expect(parse("", P.withDefault(P.integer, 42))).toEqualOk(42);
+	expect(parse("foo", P.withDefault(P.integer, 42))).toMatchErr(syntaxError("integer"));
+});
+
+test("validate", () => {
+	const validator = (x: number) => x % 2 !== 0 ? R.ok(x) : R.err("even");
+	expect(parse("1", P.validate(P.integer, validator))).toEqualOk(1);
+	expect(parse("42", P.validate(P.integer, validator))).toMatchErr(validationError("even"));
+});
+
 test("integer", () => {
 	expect(parse("42", P.integer)).toEqualOk(42);
 	expect(parse("-42", P.integer)).toEqualOk(-42);
@@ -55,27 +76,6 @@ test("struct", () => {
 	expect(parse(`{"a":"{\\"b\\":\\"c\\"}"}`, { a: { b: P.string } }))
 		.toEqualOk({ a: { b: "c" } });
 	expect(parse("", { foo: P.integer })).toMatchErr(jsonError());
-});
-
-test("withDefault", () => {
-	expect(parse("", P.withDefault(P.integer, 42))).toEqualOk(42);
-	expect(parse("foo", P.withDefault(P.integer, 42))).toMatchErr(syntaxError("integer"));
-});
-
-test("map", () => {
-	expect(parse("42", P.map(P.integer, x => x * 10))).toEqualOk(420);
-	expect(parse("foo", P.map(P.integer, x => x * 10))).toMatchErr(syntaxError("integer"));
-});
-
-test("mapError", () => {
-	expect(parse("42", P.mapError(P.integer, e => e.type))).toEqualOk(42);
-	expect(parse("foo", P.mapError(P.integer, e => e.type))).toMatchErr(syntaxError("integer").type);
-});
-
-test("validate", () => {
-	const validator = (x: number) => x % 2 !== 0 ? R.ok(x) : R.err("even");
-	expect(parse("1", P.validate(P.integer, validator))).toEqualOk(1);
-	expect(parse("42", P.validate(P.integer, validator))).toMatchErr(validationError("even"));
 });
 
 test("parse", () => {

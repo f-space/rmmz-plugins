@@ -215,15 +215,15 @@ declare namespace P {
 		A extends { [key: string]: Archetype; } ? { 0: MakeError<A[keyof A]> | JsonError; }[Zero<A>] : never;
 	type ErrorFormatter<E> = (error: E) => string;
 
+	const map: <T, U, E>(parser: Parser<T, E>, fn: (value: T) => U) => Parser<U, E>;
+	const mapError: <T, E, F>(parser: Parser<T, E>, fn: (error: E) => F) => Parser<T, F>;
+	const withDefault: <T, E>(parser: Parser<T, E>, value: T) => Parser<T, E>;
+	const validate: <T, U, E, V>(parser: Parser<T, E>, validator: Validator<T, U, V>) => Parser<U, E | ValidationError<V>>;
 	const integer: Parser<number, SyntaxError<"integer">>;
 	const number: Parser<number, SyntaxError<"number">>;
 	const string: Parser<string, never>;
 	const boolean: Parser<boolean, SyntaxError<"boolean">>;
 	const custom: <T, K>(fn: (s: string) => R.Result<T, K>) => Parser<T, SyntaxError<K>>;
-	const withDefault: <T, E>(parser: Parser<T, E>, value: T) => Parser<T, E>;
-	const map: <T, U, E>(parser: Parser<T, E>, fn: (value: T) => U) => Parser<U, E>;
-	const mapError: <T, E, F>(parser: Parser<T, E>, fn: (error: E) => F) => Parser<T, F>;
-	const validate: <T, U, E, V>(parser: Parser<T, E>, validator: Validator<T, U, V>) => Parser<U, E | ValidationError<V>>;
 	const make: <A extends Archetype>(archetype: A) => Make<A>;
 	const parse: <A extends Archetype>(
 		s: string,
