@@ -682,10 +682,11 @@
 		const brackets = parser => group(symbol("["), symbol("]"), parser);
 
 		const flatten = parser => map(parser, ([first, rest]) => [first, ...rest.map(([, item]) => item)]);
-		const chain = (item, delimiter) => flatten(G.seqOf([item, G.many(G.seqOf([delimiter, item]))]));
+		const chain = (item, delimiter) => withDefault(chain1(item, delimiter), []);
+		const chain1 = (item, delimiter) => flatten(G.seqOf([item, G.many(G.seqOf([delimiter, item]))]));
 		const join = (items, delimiter) => items.length === 0 ? succeed([]) : flatten(join_(items, delimiter));
 		const join_ = ([first, ...rest], delimiter) => G.seqOf([first, G.seqOf(rest.map(item => G.seqOf([delimiter, item])))]);
-		const list = parser => chain(parser, spaces);
+		const list = parser => chain1(parser, spaces);
 		const tuple = parsers => join(parsers, spaces);
 		const withDefault = (parser, value) => map(G.optional(parser), option => O.withDefault(option, value));
 
@@ -722,6 +723,7 @@
 			braces,
 			brackets,
 			chain,
+			chain1,
 			join,
 			list,
 			tuple,

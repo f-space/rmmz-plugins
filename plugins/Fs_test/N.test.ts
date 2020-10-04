@@ -93,6 +93,13 @@ test("brackets", () => {
 
 test("chain", () => {
 	const numbers = N.chain(N.natural, N.symbol("-"));
+	expect(parse("", numbers)).toEqualOk([]);
+	expect(parse("12-34-56-78", numbers)).toEqualOk([12, 34, 56, 78]);
+	expect(parse("12 - 34 - 56 - 78", numbers)).toEqualOk([12]);
+});
+
+test("chain1", () => {
+	const numbers = N.chain1(N.natural, N.symbol("-"));
 	expect(parse("12-34-56-78", numbers)).toEqualOk([12, 34, 56, 78]);
 	expect(parse("12 - 34 - 56 - 78", numbers)).toEqualOk([12]);
 	expect(parse("", numbers)).toMatchErr(tokenError(0, "natural"));
