@@ -524,7 +524,7 @@
 
 	const M = (() => {
 		const notationError = (expected, name, value) => ({ type: 'notation', expected, name, value });
-		const parseError = (name, source, cause) => ({ type: 'parse', name, source, cause });
+		const attributeError = (name, source, cause) => ({ type: 'attribute', name, source, cause });
 
 		const flag = name => data => {
 			const v = data.meta[name];
@@ -538,7 +538,7 @@
 		const attr = (name, parser) => data => {
 			const v = data.meta[name];
 			if (typeof v === 'string') {
-				return R.mapErr(R.map(parser(v), O.some), cause => parseError(name, v, cause));
+				return R.mapErr(R.map(parser(v), O.some), cause => attributeError(name, v, cause));
 			} else if (v === undefined) {
 				return R.ok(O.none());
 			} else {
@@ -601,7 +601,7 @@
 						case 'attr': return `'${error.name}' metadata is not a flag.`;
 						default: return `Unknown metadata type: ${error.expected}`;
 					}
-				case 'parse':
+				case 'attribute':
 					const message = G.defaultErrorFormatter(error.cause);
 					return `Failed to parse '${error.name}' metadata arguments. <<< ${message}`;
 				default: return `Unknown error: ${S.debug(error)}`;

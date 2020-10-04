@@ -272,8 +272,8 @@ declare namespace M {
 		name: string;
 		value: string | true;
 	};
-	type ParseError<C> = {
-		type: 'parse';
+	type AttributeError<C> = {
+		type: 'attribute';
 		name: string;
 		source: string;
 		cause: C;
@@ -303,7 +303,7 @@ declare namespace M {
 	type ErrorFormatter<E> = (error: E) => string;
 
 	const flag: (name: string) => Parser<boolean, NotationError>;
-	const attr: <T, C>(name: string, parser: AttrParser<T, C>) => Parser<T, NotationError | ParseError<C>>;
+	const attr: <T, C>(name: string, parser: AttrParser<T, C>) => Parser<T, NotationError | AttributeError<C>>;
 	const succeed: <T>(value: T) => Parser<T, never>;
 	const miss: () => Parser<never, never>;
 	const fail: <E>(error: E) => Parser<never, E>;

@@ -7,7 +7,7 @@ const parse = <A extends Fs.M.Archetype>(meta: Fs.M.Data['meta'], parser: A) => 
 
 const notationError = (expected: 'flag' | 'attr', name: string, value: string | true) =>
 	({ type: 'notation', expected, name, value });
-const parseError = <C>(cause: C) => ({ type: 'parse', cause });
+const attributeError = <C>(cause: C) => ({ type: 'attribute', cause });
 
 test("flag", () => {
 	expect(parse({ foo: true }, M.flag("foo"))).toEqualOk(O.some(true));
@@ -19,7 +19,7 @@ test("attr", () => {
 	expect(parse({ foo: "42" }, M.attr("foo", N.make(N.integer)))).toEqualOk(O.some(42));
 	expect(parse({}, M.attr("foo", N.make(N.integer)))).toEqualOk(O.none());
 	expect(parse({ foo: true }, M.attr("foo", N.make(N.integer)))).toMatchErr(notationError("attr", "foo", true));
-	expect(parse({ foo: "42" }, M.attr("foo", N.make(N.fail("fail"))))).toMatchErr(parseError("fail"));
+	expect(parse({ foo: "42" }, M.attr("foo", N.make(N.fail("fail"))))).toMatchErr(attributeError("fail"));
 });
 
 test("succeed", () => {
