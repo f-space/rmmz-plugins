@@ -674,12 +674,12 @@
 		const boolean = regexp("boolean", RE_BOOLEAN, s => s === 'true');
 		const text = regexp("text", RE_TEXT, value => value.slice(1, -1).replace(/`(.)/gu, "$1"));
 
-		const between = (begin, end, inner) => map(G.seqOf([begin, inner, end]), value => value[1]);
-		const trim = parser => between(spacing, spacing, parser);
-		const group = (begin, end, inner) => between(begin, end, trim(inner));
-		const parens = parser => group(symbol("("), symbol(")"), parser);
-		const braces = parser => group(symbol("{"), symbol("}"), parser);
-		const brackets = parser => group(symbol("["), symbol("]"), parser);
+		const between = (parser, start, end) => map(G.seqOf([start, parser, end]), value => value[1]);
+		const margin = parser => between(parser, spacing, spacing);
+		const group = (parser, begin, end) => between(margin(parser), begin, end);
+		const parens = parser => group(parser, symbol("("), symbol(")"));
+		const braces = parser => group(parser, symbol("{"), symbol("}"));
+		const brackets = parser => group(parser, symbol("["), symbol("]"));
 
 		const flatten = parser => map(parser, ([first, rest]) => [first, ...rest.map(([, item]) => item)]);
 		const chain = (item, delimiter) => withDefault(chain1(item, delimiter), []);
@@ -690,7 +690,7 @@
 		const tuple = parsers => join(parsers, spaces);
 		const withDefault = (parser, value) => map(G.optional(parser), option => O.withDefault(option, value));
 
-		const make = parser => G.make(G.andThen(trim(parser), value => G.map(G.eof(), () => value)));
+		const make = parser => G.make(G.andThen(margin(parser), value => G.map(G.eof(), () => value)));
 
 		const parse = (source, parser, errorFormatter = G.defaultErrorFormatter) => {
 			const result = make(parser)(source);

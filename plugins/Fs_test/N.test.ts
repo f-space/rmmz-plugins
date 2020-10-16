@@ -71,8 +71,8 @@ test("text", () => {
 test("group", () => {
 	const stars = N.symbol("***");
 	const alpha = N.regexp('alpha', /^[a-z]+/i);
-	expect(parse("***FOO***", N.group(stars, stars, alpha))).toEqualOk("FOO");
-	expect(parse("*** foo ***", N.group(stars, stars, alpha))).toEqualOk("foo");
+	expect(parse("***FOO***", N.group(alpha, stars, stars))).toEqualOk("FOO");
+	expect(parse("*** foo ***", N.group(alpha, stars, stars))).toEqualOk("foo");
 });
 
 test("parens", () => {

@@ -359,7 +359,7 @@ declare namespace N {
 	const number: Parser<number, TokenError>;
 	const boolean: Parser<boolean, TokenError>;
 	const text: Parser<string, TokenError>;
-	const group: <T, E, F, G>(begin: Parser<unknown, F>, end: Parser<unknown, G>, inner: Parser<T, E>)
+	const group: <T, E, F, G>(parser: Parser<T, E>, begin: Parser<unknown, F>, end: Parser<unknown, G>)
 		=> Parser<T, E | F | G>;
 	const parens: <T, E>(parser: Parser<T, E>) => Parser<T, E | TokenError>;
 	const braces: <T, E>(parser: Parser<T, E>) => Parser<T, E | TokenError>;
