@@ -1,9 +1,9 @@
 import "./JestExt";
 import Fs from "./Fs";
 
-const { G, N } = Fs;
+const { N } = Fs;
 
-const parse = <T, E>(source: string, parser: Fs.N.Parser<T, E>) => G.make(parser)(source);
+const parse = <T, E>(source: string, parser: Fs.N.Parser<T, E>) => N.make(parser)(source);
 
 const tokenError = (position: number, name: string) => ({ type: 'token', context: { position }, name });
 const eofError = (position: number) => ({ type: 'eof', context: { position } });
@@ -68,6 +68,11 @@ test("text", () => {
 	expect(parse('"`\n"', N.text)).toMatchErr(tokenError(0, "text"));
 });
 
+test("margin", () => {
+	expect(parse("42", N.margin(N.integer))).toEqualOk(42);
+	expect(parse("  42  ", N.margin(N.integer))).toEqualOk(42);
+});
+
 test("group", () => {
 	const stars = N.symbol("***");
 	const alpha = N.regexp('alpha', /^[a-z]+/i);
@@ -88,6 +93,11 @@ test("braces", () => {
 test("brackets", () => {
 	expect(parse("[ 42 ]", N.brackets(N.integer))).toEqualOk(42);
 	expect(parse("42", N.brackets(N.integer))).toMatchErr(tokenError(0, "["));
+});
+
+test("iff", () => {
+	expect(parse("42", N.iff(N.integer))).toEqualOk(42);
+	expect(parse("42;", N.iff(N.integer))).toMatchErr(eofError(2));
 });
 
 test("chain", () => {
@@ -129,9 +139,4 @@ test("withDefault", () => {
 	const command = N.join([N.integer, N.withDefault(N.map(N.symbol("--wait"), () => true), false)], N.spacing);
 	expect(parse("42 --wait", command)).toEqualOk([42, true]);
 	expect(parse("42", command)).toEqualOk([42, false]);
-});
-
-test("parse", () => {
-	expect(N.parse("  42  ", N.integer)).toEqual(42);
-	expect(() => N.parse("42;", N.integer, e => e.type)).toThrow(new Error(eofError(2).type));
 });

@@ -359,11 +359,13 @@ declare namespace N {
 	const number: Parser<number, TokenError>;
 	const boolean: Parser<boolean, TokenError>;
 	const text: Parser<string, TokenError>;
+	const margin: <T, E>(parser: Parser<T, E>) => Parser<T, E>;
 	const group: <T, E, F, G>(parser: Parser<T, E>, begin: Parser<unknown, F>, end: Parser<unknown, G>)
 		=> Parser<T, E | F | G>;
 	const parens: <T, E>(parser: Parser<T, E>) => Parser<T, E | TokenError>;
 	const braces: <T, E>(parser: Parser<T, E>) => Parser<T, E | TokenError>;
 	const brackets: <T, E>(parser: Parser<T, E>) => Parser<T, E | TokenError>;
+	const iff: <T, E>(parser: Parser<T, E>) => Parser<T, E | EofError>;
 	const chain: <T>(item: Parser<T, unknown>, delimiter: Parser<unknown, unknown>) => Parser<T[], never>;
 	const chain1: <T, E>(item: Parser<T, E>, delimiter: Parser<unknown, unknown>) => Parser<T[], E>;
 	const join: <P extends readonly Parser<any, any>[], F>(items: readonly [...P], delimiter: Parser<unknown, F>)
@@ -371,8 +373,8 @@ declare namespace N {
 	const list: <T>(parser: Parser<T, unknown>) => Parser<T[], never>;
 	const tuple: <P extends readonly Parser<any, any>[]>(parsers: readonly [...P]) => Join<P, TokenError>;
 	const withDefault: <T, E>(parser: Parser<T, E>, value: T) => Parser<T, E>;
-	const make: <T, E>(parser: Parser<T, E>) => BuiltParser<T, E | EofError>;
-	const parse: <T, E>(source: Source, parser: Parser<T, E>, errorFormatter?: ErrorFormatter<E | EofError>) => T;
+	const make: <T, E>(parser: Parser<T, E>) => BuiltParser<T, E>;
+	const parse: <T, E>(source: Source, parser: Parser<T, E>, errorFormatter?: ErrorFormatter<E>) => T;
 }
 
 type Z = typeof Z;

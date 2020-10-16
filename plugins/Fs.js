@@ -636,14 +636,12 @@
 		const RE_BOOLEAN = /^(?:true|false)\b/;
 		const RE_TEXT = /^(?:'(?:[^'`]|`.)*'|"(?:[^"`]|`.)*")/u;
 
-		const memo = f => (...args) => G.memo(f(...args));
-		const succeed = G.succeed;
-		const fail = G.fail;
-		const map = memo(G.map);
-		const mapError = memo(G.mapError);
-		const seqOf = memo(G.seqOf);
-		const oneOf = memo(G.oneOf);
-		const validate = memo(G.validate);
+		const { succeed, fail, make, parse } = G;
+		const map = (parser, fn) => G.memo(G.map(parser, fn));
+		const mapError = (parser, fn) => G.memo(G.mapError(parser, fn));
+		const seqOf = parsers => G.memo(G.seqOf(parsers));
+		const oneOf = parsers => G.memo(G.oneOf(parsers));
+		const validate = (parser, validator) => G.memo(G.validate(parser, validator));
 
 		const symbol = s => G.memo(G.token(s, (source, start) => {
 			if (source.startsWith(s, start)) {
@@ -680,6 +678,7 @@
 		const parens = parser => group(parser, symbol("("), symbol(")"));
 		const braces = parser => group(parser, symbol("{"), symbol("}"));
 		const brackets = parser => group(parser, symbol("["), symbol("]"));
+		const iff = parser => G.andThen(parser, value => G.map(G.eof(), () => value));
 
 		const flatten = parser => map(parser, ([first, rest]) => [first, ...rest.map(([, item]) => item)]);
 		const chain = (item, delimiter) => withDefault(chain1(item, delimiter), []);
@@ -689,17 +688,6 @@
 		const list = parser => chain(parser, spaces);
 		const tuple = parsers => join(parsers, spaces);
 		const withDefault = (parser, value) => map(G.optional(parser), option => O.withDefault(option, value));
-
-		const make = parser => G.make(G.andThen(margin(parser), value => G.map(G.eof(), () => value)));
-
-		const parse = (source, parser, errorFormatter = G.defaultErrorFormatter) => {
-			const result = make(parser)(source);
-			return R.match(
-				result,
-				value => value,
-				error => { throw new Error(errorFormatter(error)); },
-			);
-		};
 
 		return {
 			succeed,
@@ -718,10 +706,12 @@
 			number,
 			boolean,
 			text,
+			margin,
 			group,
 			parens,
 			braces,
 			brackets,
+			iff,
 			chain,
 			chain1,
 			join,
