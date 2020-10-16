@@ -7,7 +7,6 @@ const parse = <T, E>(source: string, parser: Fs.N.Parser<T, E>) => G.make(parser
 
 const tokenError = (position: number, name: string) => ({ type: 'token', context: { position }, name });
 const eofError = (position: number) => ({ type: 'eof', context: { position } });
-const pathError = <E>(position: number, errors: E[]) => ({ type: 'path', context: { position }, errors });
 
 test("symbol", () => {
 	expect(parse("foo", N.symbol("foo"))).toEqualOk("foo");
@@ -115,7 +114,8 @@ test("join", () => {
 test("list", () => {
 	const answers = N.list(N.oneOf([N.map(N.symbol("yes"), () => true), N.map(N.symbol("no"), () => false)]));
 	expect(parse("yes no yes yes no no", answers)).toEqualOk([true, false, true, true, false, false]);
-	expect(parse("", answers)).toMatchErr(pathError(0, [tokenError(0, "yes"), tokenError(0, "no")]));
+	expect(parse("yep", answers)).toEqualOk([]);
+	expect(parse("", answers)).toEqualOk([]);
 });
 
 test("tuple", () => {
