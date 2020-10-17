@@ -4,6 +4,7 @@ import Fs from "./Fs";
 const { R, P } = Fs;
 
 const parse = <T, E>(s: string, parser: Fs.P.Parser<T, E>) => parser(s);
+
 const formatError = <K extends string>(expected: K) => ({ type: 'format', expected });
 const jsonError = () => ({ type: 'json' });
 const validationError = <V>(cause: V) => ({ type: 'validation', cause });
@@ -150,8 +151,8 @@ test("make", () => {
 });
 
 test("parse", () => {
-	expect(P.parse(`{"foo":"42"}`, { foo: P.integer })).toEqual({ foo: 42 });
-	expect(() => P.parse(`{"foo":"42"}`, { foo: P.boolean }, (e: any) => e.type))
+	expect(P.parse(`{"foo":"42"}`, P.make({ foo: P.integer }))).toEqual({ foo: 42 });
+	expect(() => P.parse(`{"foo":"42"}`, P.make({ foo: P.boolean }), (e: any) => e.type))
 		.toThrow(new Error(formatError("boolean").type));
 });
 

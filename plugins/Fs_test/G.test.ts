@@ -124,6 +124,6 @@ test("memo", () => {
 });
 
 test("parse", () => {
-	expect(G.parse("a", char("a"))).toEqual("a");
-	expect(() => G.parse("b", char("a"), e => e.type)).toThrow(new Error(tokenError(0, "a").type));
+	expect(G.parse("a", G.make(char("a")))).toEqual("a");
+	expect(() => G.parse("b", G.make(char("a")), e => e.type)).toThrow(new Error(tokenError(0, "a").type));
 });

@@ -360,7 +360,7 @@
 
 		const parse = (source, parser, errorFormatter = defaultErrorFormatter) => {
 			return R.match(
-				make(parser)(source),
+				parser(source),
 				value => value,
 				error => { throw new Error(errorFormatter(error)); },
 			);
@@ -472,17 +472,17 @@
 			}
 		};
 
-		const parse = (s, archetype, errorFormatter = defaultErrorFormatter) => {
+		const parse = (s, parser, errorFormatter = defaultErrorFormatter) => {
 			return R.match(
-				make(archetype)(s),
+				parser(s),
 				value => value,
 				error => { throw new Error(errorFormatter(error)); },
 			);
 		};
 
-		const parseAll = (args, archetypes, errorFormatter) => {
-			return Object.fromEntries(Object.entries(archetypes).map(([key, value]) => {
-				return [key, parse(args[key], value, errorFormatter)];
+		const parseAll = (args, parsers, errorFormatter) => {
+			return Object.fromEntries(Object.entries(parsers).map(([key, parser]) => {
+				return [key, parse(args[key], parser, errorFormatter)];
 			}));
 		};
 
@@ -575,7 +575,7 @@
 			}
 		};
 
-		const parseWith = (meta, parser, errorFormatter = defaultErrorFormatter) => {
+		const parse = (meta, parser, errorFormatter = defaultErrorFormatter) => {
 			return R.match(
 				parser(meta),
 				value => O.withDefault(value, undefined),
@@ -583,15 +583,12 @@
 			);
 		};
 
-		const parse = (meta, archetype, errorFormatter) => parseWith(meta, make(archetype), errorFormatter);
-
-		const meta = (archetype, errorFormatter) => {
+		const meta = (parser, errorFormatter) => {
 			const store = new WeakMap();
-			const parser = make(archetype);
-			const parse = ({ meta }) => store.set(meta, parseWith(meta, parser, errorFormatter));
-			const parseAll = table => table.forEach(data => { if (data !== null) parse(data); });
+			const parse_ = ({ meta }) => store.set(meta, parse(meta, parser, errorFormatter));
+			const parseAll = table => table.forEach(data => { if (data !== null) parse_(data); });
 			const get = ({ meta }) => store.get(meta);
-			return { parse, parseAll, get };
+			return { parse: parse_, parseAll, get };
 		};
 
 		const defaultErrorFormatter = error => {

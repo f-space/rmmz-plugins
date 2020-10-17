@@ -81,11 +81,11 @@ test("parse", () => {
 	expect(M.parse({}, M.attrN("foo", N.boolean))).toBeUndefined();
 	expect(M.parse(
 		{ foo: true, bar: "true" },
-		[M.flag("foo"), M.attrN("bar", N.boolean)] as const
+		M.make([M.flag("foo"), M.attrN("bar", N.boolean)])
 	)).toEqual([true, true]);
 	expect(M.parse(
 		{ foo: true, bar: "true" },
-		{ foo: M.flag("foo"), bar: M.attrN("bar", N.boolean) }
+		M.make({ foo: M.flag("foo"), bar: M.attrN("bar", N.boolean) })
 	)).toEqual({ foo: true, bar: true });
 	expect(() => M.parse({ foo: "true" }, M.flag("foo"), e => e.type))
 		.toThrow(new Error(notationError('flag', "foo", "true").type));

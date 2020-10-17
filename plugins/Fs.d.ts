@@ -174,7 +174,7 @@ declare namespace G {
 		=> Parser<S, U, E | ValidationError<S, V>>;
 	const memo: <S, T, E>(parser: Parser<S, T, E>) => Parser<S, T, E>;
 	const make: <S, T, E>(parser: Parser<S, T, E>) => BuiltParser<S, T, E>;
-	const parse: <S extends Source, T, E>(source: S, parser: Parser<S, T, E>, errorFormatter?: ErrorFormatter<E>) => T;
+	const parse: <S extends Source, T, E>(source: S, parser: BuiltParser<S, T, E>, errorFormatter?: ErrorFormatter<E>) => T;
 	const defaultErrorFormatter: ErrorFormatter<unknown>;
 }
 
@@ -242,16 +242,12 @@ declare namespace P {
 	const struct: <P extends readonly EntryParser<any, any, any>[]>(parsers: readonly [...P]) => Struct<P>;
 	const entry: <K extends string, T, E>(key: K, parser: Parser<T, E>) => EntryParser<K, T, E>;
 	const make: <A extends Archetype>(archetype: A) => Make<A>;
-	const parse: <A extends Archetype>(
-		s: string,
-		archetype: A,
-		errorFormatter?: ErrorFormatter<MakeError<A>>
-	) => MakeValue<A>;
-	const parseAll: <A extends { [key: string]: Archetype; }>(
-		args: { [K in keyof A]: string },
-		archetypes: A,
-		errorFormatter?: ErrorFormatter<MakeError<A[keyof A]>>
-	) => { [K in keyof A]: MakeValue<A[K]> };
+	const parse: <T, E>(s: string, parser: Parser<T, E>, errorFormatter?: ErrorFormatter<E>) => T;
+	const parseAll: <P extends { [key: string]: Parser<any, any>; }>(
+		args: { [K in keyof P]: string },
+		parsers: P,
+		errorFormatter?: ErrorFormatter<P[keyof P] extends Parser<any, infer E> ? E : never>
+	) => { [K in keyof P]: P[K] extends Parser<infer T, any> ? T : never };
 	const defaultErrorFormatter: ErrorFormatter<unknown>;
 }
 
@@ -316,15 +312,8 @@ declare namespace M {
 	const withDefault: <T, E>(parser: Parser<T, E>, value: T) => Parser<T, E>;
 	const oneOf: <P extends readonly Parser<any, any>[]>(parsers: readonly [...P]) => OneOf<P>;
 	const make: <A extends Archetype>(archetype: A) => Make<A>;
-	const parse: <A extends Archetype>(
-		meta: Metadata,
-		archetype: A,
-		errorFormatter?: ErrorFormatter<MakeError<A>>,
-	) => MakeValue<A>;
-	const meta: <A extends Archetype>(
-		archetype: A,
-		errorFormatter?: ErrorFormatter<MakeError<A>>,
-	) => Meta<MakeValue<A>>;
+	const parse: <T, E>(meta: Metadata, parser: Parser<T, E>, errorFormatter?: ErrorFormatter<E>) => T;
+	const meta: <T, E>(parser: Parser<T, E>, errorFormatter?: ErrorFormatter<E>) => Meta<T>;
 	const defaultErrorFormatter: ErrorFormatter<unknown>;
 }
 
@@ -376,7 +365,7 @@ declare namespace N {
 	const tuple: <P extends readonly Parser<any, any>[]>(parsers: readonly [...P]) => Join<P, TokenError>;
 	const withDefault: <T, E>(parser: Parser<T, E>, value: T) => Parser<T, E>;
 	const make: <T, E>(parser: Parser<T, E>) => BuiltParser<T, E>;
-	const parse: <T, E>(source: Source, parser: Parser<T, E>, errorFormatter?: ErrorFormatter<E>) => T;
+	const parse: <T, E>(source: Source, parser: BuiltParser<T, E>, errorFormatter?: ErrorFormatter<E>) => T;
 	const defaultErrorFormatter: ErrorFormatter<unknown>;
 }
 
