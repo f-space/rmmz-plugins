@@ -257,14 +257,15 @@ declare namespace P {
 
 type M = typeof M;
 declare namespace M {
-	type Data = { meta: { [key: string]: string | true; }; };
+	type Data = { meta: Metadata; };
+	type Metadata = { [key: string]: string | true; };
 	type Meta<T> = {
 		parse(data: Data): void;
 		parseAll(table: readonly (Data | null)[]): void;
 		get(data: Data): T | undefined;
 	};
 
-	type Parser<T, E> = (data: Data) => R.Result<O.Option<T>, E>;
+	type Parser<T, E> = (meta: Metadata) => R.Result<O.Option<T>, E>;
 
 	type NotationError = {
 		type: 'notation';
@@ -315,7 +316,7 @@ declare namespace M {
 	const oneOf: <P extends readonly Parser<any, any>[]>(parsers: readonly [...P]) => OneOf<P>;
 	const make: <A extends Archetype>(archetype: A) => Make<A>;
 	const parse: <A extends Archetype>(
-		data: Data,
+		meta: Metadata,
 		archetype: A,
 		errorFormatter?: ErrorFormatter<MakeError<A>>,
 	) => MakeValue<A>;

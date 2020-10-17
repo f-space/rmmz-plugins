@@ -526,8 +526,8 @@
 		const notationError = (expected, name, value) => ({ type: 'notation', expected, name, value });
 		const attributeError = (name, source, cause) => ({ type: 'attribute', name, source, cause });
 
-		const flag = name => data => {
-			const v = data.meta[name];
+		const flag = name => meta => {
+			const v = meta[name];
 			switch (v) {
 				case undefined: return R.ok(O.some(false));
 				case true: return R.ok(O.some(true));
@@ -535,8 +535,8 @@
 			}
 		};
 
-		const attr = (name, parser) => data => {
-			const v = data.meta[name];
+		const attr = (name, parser) => meta => {
+			const v = meta[name];
 			if (typeof v === 'string') {
 				return R.mapErr(R.map(parser(v), O.some), cause => attributeError(name, v, cause));
 			} else if (v === undefined) {
@@ -574,22 +574,22 @@
 			}
 		};
 
-		const parseWith = (data, parser, errorFormatter = defaultErrorFormatter) => {
+		const parseWith = (meta, parser, errorFormatter = defaultErrorFormatter) => {
 			return R.match(
-				parser(data),
+				parser(meta),
 				value => O.withDefault(value, undefined),
 				error => { throw new Error(errorFormatter(error)); },
 			);
 		};
 
-		const parse = (data, archetype, errorFormatter) => parseWith(data, make(archetype), errorFormatter);
+		const parse = (meta, archetype, errorFormatter) => parseWith(meta, make(archetype), errorFormatter);
 
 		const meta = (archetype, errorFormatter) => {
 			const store = new WeakMap();
 			const parser = make(archetype);
-			const parse = data => store.set(data, parseWith(data, parser, errorFormatter));
+			const parse = ({ meta }) => store.set(meta, parseWith(meta, parser, errorFormatter));
 			const parseAll = table => table.forEach(data => { if (data !== null) parse(data); });
-			const get = data => store.get(data);
+			const get = ({ meta }) => store.get(meta);
 			return { parse, parseAll, get };
 		};
 

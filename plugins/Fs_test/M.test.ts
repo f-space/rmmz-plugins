@@ -3,7 +3,7 @@ import Fs from "./Fs";
 
 const { O, M, N } = Fs;
 
-const parse = <A extends Fs.M.Archetype>(meta: Fs.M.Data['meta'], parser: A) => M.make(parser)({ meta });
+const parse = <A extends Fs.M.Archetype>(meta: Fs.M.Metadata, parser: A) => M.make(parser)(meta);
 
 const makeN = <T, E>(parser: Fs.N.Parser<T, E>) => N.make(N.iff(N.margin(parser)));
 
@@ -74,17 +74,17 @@ test("oneOf", () => {
 });
 
 test("parse", () => {
-	expect(M.parse({ meta: { foo: true } }, M.flag("foo"))).toBe(true);
-	expect(M.parse({ meta: {} }, M.attr("foo", makeN(N.boolean)))).toBeUndefined();
+	expect(M.parse({ foo: true }, M.flag("foo"))).toBe(true);
+	expect(M.parse({}, M.attr("foo", makeN(N.boolean)))).toBeUndefined();
 	expect(M.parse(
-		{ meta: { foo: true, bar: "true" } },
+		{ foo: true, bar: "true" },
 		[M.flag("foo"), M.attr("bar", makeN(N.boolean))] as const
 	)).toEqual([true, true]);
 	expect(M.parse(
-		{ meta: { foo: true, bar: "true" } },
+		{ foo: true, bar: "true" },
 		{ foo: M.flag("foo"), bar: M.attr("bar", makeN(N.boolean)) }
 	)).toEqual({ foo: true, bar: true });
-	expect(() => M.parse({ meta: { foo: "true" } }, M.flag("foo"), e => e.type))
+	expect(() => M.parse({ foo: "true" }, M.flag("foo"), e => e.type))
 		.toThrow(new Error(notationError('flag', "foo", "true").type));
 });
 
