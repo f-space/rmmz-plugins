@@ -585,10 +585,15 @@
 
 		const meta = (parser, errorFormatter) => {
 			const store = new WeakMap();
-			const parse_ = ({ meta }) => store.set(meta, parse(meta, parser, errorFormatter));
-			const parseAll = table => table.forEach(data => { if (data !== null) parse_(data); });
-			const get = ({ meta }) => store.get(meta);
-			return { parse: parse_, parseAll, get };
+			return meta => {
+				if (store.has(meta)) {
+					return store.get(meta);
+				} else {
+					const value = parse(meta, parser, errorFormatter);
+					store.set(meta, value);
+					return value;
+				}
+			};
 		};
 
 		const defaultErrorFormatter = error => {

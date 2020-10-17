@@ -92,12 +92,8 @@ test("parse", () => {
 });
 
 test("meta", () => {
-	const { parse, parseAll, get } = M.meta(M.attrN("foo", N.integer));
-	const data = { meta: { foo: "42" } };
-	const table = [null, { meta: { foo: "12" } }, null, { meta: { foo: "34" } }, null] as const;
-	parse(data);
-	parseAll(table);
-	expect(get(data)).toBe(42);
-	expect(get(table[1])).toBe(12);
-	expect(get(table[3])).toBe(34);
+	const foo = M.meta(M.attrN("foo", N.brackets(N.list(N.integer))));
+	const data = { foo: "[42]" };
+	expect(foo(data) === foo(data)).toBe(true);
+	expect(foo(data)).toEqual([42]);
 });

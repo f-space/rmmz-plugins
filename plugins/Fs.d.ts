@@ -255,11 +255,6 @@ type M = typeof M;
 declare namespace M {
 	type Data = { meta: Metadata; };
 	type Metadata = { [key: string]: string | true; };
-	type Meta<T> = {
-		parse(data: Data): void;
-		parseAll(table: readonly (Data | null)[]): void;
-		get(data: Data): T | undefined;
-	};
 
 	type Parser<T, E> = (meta: Metadata) => R.Result<O.Option<T>, E>;
 
@@ -297,6 +292,7 @@ declare namespace M {
 		A extends Parser<any, infer E> ? E :
 		A extends readonly [infer F, ...infer R] ? { 0: MakeError<F> | MakeError<R>; }[Zero<A>] :
 		A extends { [key: string]: Archetype; } ? { 0: MakeError<A[keyof A]>; }[Zero<A>] : never;
+	type Meta<T> = (meta: Metadata) => T;
 	type ErrorFormatter<E> = (error: E) => string;
 
 	const flag: (name: string) => Parser<boolean, NotationError>;
