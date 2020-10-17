@@ -545,6 +545,7 @@
 				return R.err(notationError('attr', name, v));
 			}
 		};
+		const attrN = (name, parser) => attr(name, N.make(N.iff(N.margin(parser))));
 
 		const succeed = value => () => R.ok(O.some(value));
 		const miss = () => () => R.ok(O.none());
@@ -611,6 +612,7 @@
 		return {
 			flag,
 			attr,
+			attrN,
 			succeed,
 			miss,
 			fail,

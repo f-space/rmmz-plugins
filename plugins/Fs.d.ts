@@ -305,6 +305,7 @@ declare namespace M {
 
 	const flag: (name: string) => Parser<boolean, NotationError>;
 	const attr: <T, C>(name: string, parser: AttrParser<T, C>) => Parser<T, NotationError | AttributeError<C>>;
+	const attrN: <T, C>(name: string, parser: N.Parser<T, C>) => Parser<T, NotationError | AttributeError<C>>;
 	const succeed: <T>(value: T) => Parser<T, never>;
 	const miss: () => Parser<never, never>;
 	const fail: <E>(error: E) => Parser<never, E>;
