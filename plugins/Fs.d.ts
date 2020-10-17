@@ -376,6 +376,7 @@ declare namespace N {
 	const withDefault: <T, E>(parser: Parser<T, E>, value: T) => Parser<T, E>;
 	const make: <T, E>(parser: Parser<T, E>) => BuiltParser<T, E>;
 	const parse: <T, E>(source: Source, parser: Parser<T, E>, errorFormatter?: ErrorFormatter<E>) => T;
+	const defaultErrorFormatter: ErrorFormatter<unknown>;
 }
 
 type Z = typeof Z;

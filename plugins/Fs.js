@@ -602,7 +602,7 @@
 						default: return `Unknown metadata type: ${error.expected}`;
 					}
 				case 'attribute':
-					const message = G.defaultErrorFormatter(error.cause);
+					const message = N.defaultErrorFormatter(error.cause);
 					return `Failed to parse '${error.name}' metadata arguments. <<< ${message}`;
 				default: return `Unknown error: ${S.debug(error)}`;
 			}
@@ -636,7 +636,7 @@
 		const RE_BOOLEAN = /^(?:true|false)\b/;
 		const RE_TEXT = /^(?:'(?:[^'`]|`.)*'|"(?:[^"`]|`.)*")/u;
 
-		const { succeed, fail, make, parse } = G;
+		const { succeed, fail, make, parse, defaultErrorFormatter } = G;
 		const map = (parser, fn) => G.memo(G.map(parser, fn));
 		const mapError = (parser, fn) => G.memo(G.mapError(parser, fn));
 		const seqOf = parsers => G.memo(G.seqOf(parsers));
@@ -720,6 +720,7 @@
 			withDefault,
 			make,
 			parse,
+			defaultErrorFormatter,
 		};
 	})();
 
