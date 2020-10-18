@@ -64,3 +64,12 @@ test("memo1", () => {
 	const output = [0, 1, 1, 1, 2, 2, 3, 4, 4, 5];
 	expect(input.map(x => f(x))).toEqual(output);
 });
+
+test("memoW", () => {
+	const counter = (() => { let value = 0; return (_: object) => value++; });
+	const f = U.memoW(counter());
+	const [a, b, c, d, e] = [{}, {}, {}, {}, {}];
+	const input = [a, b, c, d, d, a, c, e, d, e];
+	const output = [0, 1, 2, 3, 3, 0, 2, 4, 3, 4];
+	expect(input.map(x => f(x))).toEqual(output);
+});

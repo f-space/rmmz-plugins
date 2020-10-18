@@ -86,6 +86,7 @@ declare namespace U {
 	const simpleEqual: <T>(a: T, b: T) => boolean;
 	const memo: <F extends (...args: any[]) => any>(fn: F, size: number, serialize?: ArgsSerializer<F>) => F;
 	const memo1: <F extends (...args: any[]) => any>(fn: F, eq?: EqualFn<F>) => F;
+	const memoW: <F extends (obj: object) => any>(fn: F) => F;
 }
 
 type G = typeof G;

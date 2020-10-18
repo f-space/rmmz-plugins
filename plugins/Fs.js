@@ -286,7 +286,20 @@
 			};
 		};
 
-		return { simpleEqual, memo, memo1 };
+		const memoW = fn => {
+			const cache = new WeakMap();
+			return obj => {
+				if (cache.has(obj)) {
+					return cache.get(obj);
+				} else {
+					const value = fn(obj);
+					cache.set(obj, value);
+					return value;
+				}
+			};
+		};
+
+		return { simpleEqual, memo, memo1, memoW };
 	})();
 
 	const G = (() => {
@@ -708,18 +721,7 @@
 			);
 		};
 
-		const meta = (parser, errorFormatter) => {
-			const store = new WeakMap();
-			return meta => {
-				if (store.has(meta)) {
-					return store.get(meta);
-				} else {
-					const value = parse(meta, parser, errorFormatter);
-					store.set(meta, value);
-					return value;
-				}
-			};
-		};
+		const meta = (parser, errorFormatter) => U.memoW(meta => parse(meta, parser, errorFormatter));
 
 		const makeDefaultErrorFormatter = attributeErrorFormatter => error => {
 			switch (error?.type) {
