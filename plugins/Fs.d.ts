@@ -175,6 +175,10 @@ declare namespace G {
 	const memo: <S, T, E>(parser: Parser<S, T, E>) => Parser<S, T, E>;
 	const make: <S, T, E>(parser: Parser<S, T, E>) => BuiltParser<S, T, E>;
 	const parse: <S extends Source, T, E>(source: S, parser: BuiltParser<S, T, E>, errorFormatter?: ErrorFormatter<E>) => T;
+	const makeDefaultErrorFormatter: (
+		tokenErrorFormatter: ErrorFormatter<unknown>,
+		validationErrorFormatter: ErrorFormatter<unknown>,
+	) => ErrorFormatter<unknown>;
 	const defaultErrorFormatter: ErrorFormatter<unknown>;
 }
 
@@ -248,6 +252,7 @@ declare namespace P {
 		parsers: P,
 		errorFormatter?: ErrorFormatter<P[keyof P] extends Parser<any, infer E> ? E : never>
 	) => { [K in keyof P]: P[K] extends Parser<infer T, any> ? T : never };
+	const makeDefaultErrorFormatter: (validationErrorFormatter: ErrorFormatter<unknown>) => ErrorFormatter<unknown>;
 	const defaultErrorFormatter: ErrorFormatter<unknown>;
 }
 
@@ -310,6 +315,7 @@ declare namespace M {
 	const make: <A extends Archetype>(archetype: A) => Make<A>;
 	const parse: <T, E>(meta: Metadata, parser: Parser<T, E>, errorFormatter?: ErrorFormatter<E>) => T;
 	const meta: <T, E>(parser: Parser<T, E>, errorFormatter?: ErrorFormatter<E>) => Meta<T>;
+	const makeDefaultErrorFormatter: (attributeErrorFormatter: ErrorFormatter<unknown>) => ErrorFormatter<unknown>;
 	const defaultErrorFormatter: ErrorFormatter<unknown>;
 }
 
@@ -318,13 +324,26 @@ declare namespace N {
 	type Source = string;
 	type Parser<T, E> = G.Parser<Source, T, E>;
 	type BuiltParser<T, E> = G.BuiltParser<Source, T, E>;
-	type TokenError = G.TokenError<Source, string>;
+	type TokenError<C> = G.TokenError<Source, C>;
 	type EofError = G.EofError<Source>;
 	type ValidationError<V> = G.ValidationError<Source, V>;
 	type SeqOf<P> = G.SeqOf<P>;
 	type OneOf<P> = G.OneOf<P>;
 	type Validator<T, U, V> = G.Validator<T, U, V>;
 	type ErrorFormatter<E> = G.ErrorFormatter<E>;
+
+	type SymbolError = {
+		type: 'symbol';
+		source: Source;
+		start: number;
+		symbol: string;
+	};
+	type RegexpError = {
+		type: 'regexp';
+		source: Source;
+		start: number;
+		regexp: RegExp;
+	};
 
 	type Join<P, F> = SeqOf<P> extends Parser<infer T, infer E> ? Parser<T, E | F> : never;
 
@@ -336,32 +355,34 @@ declare namespace N {
 	const oneOf: <P extends readonly Parser<any, any>[]>(parsers: readonly [...P]) => OneOf<P>;
 	const validate: <T, U, E, V>(parser: Parser<T, E>, validator: Validator<T, U, V>)
 		=> Parser<U, E | ValidationError<V>>;
-	const symbol: <S extends string>(s: S) => Parser<S, TokenError>;
+	const symbol: <S extends string>(s: S) => Parser<S, TokenError<SymbolError>>;
 	const regexp: <T = string>(name: string, re: RegExp, fn?: (s: string, match: RegExpMatchArray) => T)
-		=> Parser<T, TokenError>;
+		=> Parser<T, TokenError<RegexpError>>;
 	const spacing: Parser<string, never>;
-	const spaces: Parser<string, TokenError>;
-	const natural: Parser<number, TokenError>;
-	const integer: Parser<number, TokenError>;
-	const number: Parser<number, TokenError>;
-	const boolean: Parser<boolean, TokenError>;
-	const text: Parser<string, TokenError>;
+	const spaces: Parser<string, TokenError<RegexpError>>;
+	const natural: Parser<number, TokenError<RegexpError>>;
+	const integer: Parser<number, TokenError<RegexpError>>;
+	const number: Parser<number, TokenError<RegexpError>>;
+	const boolean: Parser<boolean, TokenError<RegexpError>>;
+	const text: Parser<string, TokenError<RegexpError>>;
 	const margin: <T, E>(parser: Parser<T, E>) => Parser<T, E>;
 	const group: <T, E, F, G>(parser: Parser<T, E>, begin: Parser<unknown, F>, end: Parser<unknown, G>)
 		=> Parser<T, E | F | G>;
-	const parens: <T, E>(parser: Parser<T, E>) => Parser<T, E | TokenError>;
-	const braces: <T, E>(parser: Parser<T, E>) => Parser<T, E | TokenError>;
-	const brackets: <T, E>(parser: Parser<T, E>) => Parser<T, E | TokenError>;
+	const parens: <T, E>(parser: Parser<T, E>) => Parser<T, E | TokenError<SymbolError | RegexpError>>;
+	const braces: <T, E>(parser: Parser<T, E>) => Parser<T, E | TokenError<SymbolError | RegexpError>>;
+	const brackets: <T, E>(parser: Parser<T, E>) => Parser<T, E | TokenError<SymbolError | RegexpError>>;
 	const iff: <T, E>(parser: Parser<T, E>) => Parser<T, E | EofError>;
 	const chain: <T>(item: Parser<T, unknown>, delimiter: Parser<unknown, unknown>) => Parser<T[], never>;
 	const chain1: <T, E>(item: Parser<T, E>, delimiter: Parser<unknown, unknown>) => Parser<T[], E>;
 	const join: <P extends readonly Parser<any, any>[], F>(items: readonly [...P], delimiter: Parser<unknown, F>)
 		=> Join<P, F>;
 	const list: <T>(parser: Parser<T, unknown>) => Parser<T[], never>;
-	const tuple: <P extends readonly Parser<any, any>[]>(parsers: readonly [...P]) => Join<P, TokenError>;
+	const tuple: <P extends readonly Parser<any, any>[]>(parsers: readonly [...P]) => Join<P, TokenError<RegexpError>>;
 	const withDefault: <T, E>(parser: Parser<T, E>, value: T) => Parser<T, E>;
 	const make: <T, E>(parser: Parser<T, E>) => BuiltParser<T, E>;
 	const parse: <T, E>(source: Source, parser: BuiltParser<T, E>, errorFormatter?: ErrorFormatter<E>) => T;
+	const defaultTokenErrorFormatter: ErrorFormatter<unknown>;
+	const makeDefaultErrorFormatter: (validationErrorFormatter: ErrorFormatter<unknown>) => ErrorFormatter<unknown>;
 	const defaultErrorFormatter: ErrorFormatter<unknown>;
 }
 

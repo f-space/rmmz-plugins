@@ -366,27 +366,32 @@
 			);
 		};
 
-		const defaultErrorFormatter = error => {
-			const dots = s => S.ellipsis(s, 32);
-			const rest = ({ source: s, position: i }) => typeof s == 'string' ? dots(s.slice(i)) : S.debug(s[i]);
-			const compare = (a, b) => a[0] < b[0] ? b : a;
-			const max = (array, fn) => array.map(x => [fn(x), x]).reduce(compare, [-Infinity, undefined])[1];
-			const select = ({ errors }) => max(errors.map(e => e.type === 'path' ? select(e) : e), e => e.context.position);
-			const message = pathError => {
-				const innerError = select(pathError);
-				return innerError !== undefined ? defaultErrorFormatter(innerError) : "Dead end.";
+		const makeDefaultErrorFormatter = (tokenErrorFormatter, validationErrorFormatter) => {
+			const formatter = error => {
+				const dots = s => S.ellipsis(s, 32);
+				const rest = ({ source: s, position: i }) => typeof s == 'string' ? dots(s.slice(i)) : S.debug(s[i]);
+				const pathErrorFormatter = error => {
+					const pick = e => e.errors.length !== 0 ? select(e.errors) : e;
+					const select = errors => longest(errors.map(e => e.type === 'path' ? pick(e) : e));
+					const longest = errors => errors.reduce((a, b) => position(a) >= position(b) ? a : b);
+					const position = error => error.context.position;
+					const message = error => error.type !== 'path' ? formatter(error) : "Dead end.";
+					return message(pick(error));
+				};
+				switch (error?.type) {
+					case 'token': return `Failed to parse '${error.name}' token <<< ${tokenErrorFormatter(error.cause)}`;
+					case 'eof': return `Excessive token exists: ${rest(error.context)}`;
+					case 'path': return `No valid path exists. <<< ${pathErrorFormatter(error)}`;
+					case 'and': return `And-predicate failed: ${rest(error.context)}`;
+					case 'not': return `Not-predicate failed: ${rest(error.context)}`;
+					case 'validation': return `Validation failed <<< ${validationErrorFormatter(error.cause)}`;
+					default: return `Unknown error: ${S.debug(error)}`;
+				}
 			};
-			const embody = cause => typeof cause === 'function' ? cause() : cause;
-			switch (error?.type) {
-				case 'token': return `Failed to parse '${error.name}' token: ${S.debug(embody(error.cause))}`;
-				case 'eof': return `Excessive token exists: ${rest(error.context)}`;
-				case 'path': return `No valid path exists. <<< ${message(error)}`;
-				case 'and': return `And-predicate failed: ${rest(error.context)}`;
-				case 'not': return `Not-predicate failed: ${rest(error.context)}`;
-				case 'validation': return `Validation failed: ${S.debug(error.cause)}`;
-				default: return `Unknown error: ${S.debug(error)}`;
-			}
+			return formatter;
 		};
+
+		const defaultErrorFormatter = makeDefaultErrorFormatter(S.debug, S.debug);
 
 		return {
 			token,
@@ -408,6 +413,7 @@
 			memo,
 			make,
 			parse,
+			makeDefaultErrorFormatter,
 			defaultErrorFormatter,
 		};
 	})();
@@ -486,15 +492,17 @@
 			}));
 		};
 
-		const defaultErrorFormatter = error => {
+		const makeDefaultErrorFormatter = validationErrorFormatter => error => {
 			const dots = s => S.ellipsis(s, 32);
 			switch (error?.type) {
 				case 'format': return `Failed to parse parameter as '${error.expected}': ${dots(error.source)}`;
 				case 'json': return `Failed to parse parameter as JSON: "${error.inner.message}"`;
-				case 'validation': return `Validation failed: ${S.debug(error.cause)}`;
+				case 'validation': return `Validation failed <<< ${validationErrorFormatter(error.cause)}`;
 				default: return `Unknown error: ${S.debug(error)}`;
 			}
 		};
+
+		const defaultErrorFormatter = makeDefaultErrorFormatter(S.debug);
 
 		return {
 			succeed,
@@ -518,6 +526,7 @@
 			make,
 			parse,
 			parseAll,
+			makeDefaultErrorFormatter,
 			defaultErrorFormatter,
 		};
 	})();
@@ -596,7 +605,7 @@
 			};
 		};
 
-		const defaultErrorFormatter = error => {
+		const makeDefaultErrorFormatter = attributeErrorFormatter => error => {
 			switch (error?.type) {
 				case 'notation':
 					switch (error.expected) {
@@ -605,11 +614,14 @@
 						default: return `Unknown metadata type: ${error.expected}`;
 					}
 				case 'attribute':
-					const message = N.defaultErrorFormatter(error.cause);
+					const message = attributeErrorFormatter(error.cause);
 					return `Failed to parse '${error.name}' metadata arguments. <<< ${message}`;
 				default: return `Unknown error: ${S.debug(error)}`;
 			}
 		};
+
+		// const defaultErrorFormatter = makeDefaultErrorFormatter(N.makeDefaultErrorFormatter(S.debug));
+		const defaultErrorFormatter = makeDefaultErrorFormatter(G.makeDefaultErrorFormatter(S.debug, S.debug));
 
 		return {
 			flag,
@@ -627,6 +639,7 @@
 			make,
 			parse,
 			meta,
+			makeDefaultErrorFormatter,
 			defaultErrorFormatter,
 		};
 	})();
@@ -640,33 +653,33 @@
 		const RE_BOOLEAN = /^(?:true|false)\b/;
 		const RE_TEXT = /^(?:'(?:[^'`]|`.)*'|"(?:[^"`]|`.)*")/u;
 
-		const { succeed, fail, make, parse, defaultErrorFormatter } = G;
+		const symbolError = (source, position, symbol) => ({ type: 'symbol', source, position, symbol });
+		const regexpError = (source, position, regexp) => ({ type: 'regexp', source, position, regexp });
+
+		const { succeed, fail, make } = G;
 		const map = (parser, fn) => G.memo(G.map(parser, fn));
 		const mapError = (parser, fn) => G.memo(G.mapError(parser, fn));
 		const seqOf = parsers => G.memo(G.seqOf(parsers));
 		const oneOf = parsers => G.memo(G.oneOf(parsers));
 		const validate = (parser, validator) => G.memo(G.validate(parser, validator));
 
-		const symbol = s => G.memo(G.token(s, (source, start) => {
-			if (source.startsWith(s, start)) {
-				return R.ok([s, start + s.length]);
-			} else {
-				return R.err(() => makeLexError(source.slice(start)));
-			}
+		const symbol = symbol => G.memo(G.token(symbol, (source, start) => {
+			return source.startsWith(symbol, start)
+				? R.ok([symbol, start + symbol.length])
+				: R.err(symbolError(source, start, symbol));
 		}));
-		const regexp = (name, re, fn = identity) => G.memo(G.token(name, (source, start) => {
+
+		const regexp = (name, re, fn) => G.memo(G.token(name, (source, start) => {
 			const slice = source.slice(start);
 			const match = slice.match(re);
 			if (match !== null && match.index === 0) {
 				const token = match[0];
-				const value = fn(token, match);
+				const value = fn !== undefined ? fn(token, match) : token;
 				return R.ok([value, start + token.length]);
 			} else {
-				return R.err(() => makeLexError(slice));
+				return R.err(regexpError(source, start, re));
 			}
 		}));
-		const identity = x => x;
-		const makeLexError = s => s.length !== 0 ? `'${S.ellipsis(s, 16)}' is unexpected.` : "No more letters.";
 
 		const spacing = regexp("spacing", RE_SPACING);
 		const spaces = regexp("spaces", RE_SPACES);
@@ -692,6 +705,23 @@
 		const list = parser => chain(parser, spaces);
 		const tuple = parsers => join(parsers, spaces);
 		const withDefault = (parser, value) => map(G.optional(parser), option => O.withDefault(option, value));
+
+		const parse = (source, parser, errorFormatter = defaultErrorFormatter) => G.parse(source, parser, errorFormatter);
+
+		const defaultTokenErrorFormatter = error => {
+			const dots = s => S.ellipsis(s, 16);
+			const rest = ({ source: s, start: i }) => s.length === i ? "no more letters" : `"${dots(s.slice(i))}"`;
+			switch (error?.type) {
+				case 'symbol': return `'${error.symbol}' expected, but ${rest(error)} found.`;
+				case 'regexp': return `${S.debug(error.regexp)} expected, but ${rest(error)} found.`;
+				default: return `Unknown error: ${S.debug(error)}`;
+			}
+		};
+
+		const makeDefaultErrorFormatter = validationErrorFormatter =>
+			G.makeDefaultErrorFormatter(defaultTokenErrorFormatter, validationErrorFormatter);
+
+		const defaultErrorFormatter = makeDefaultErrorFormatter(S.debug);
 
 		return {
 			succeed,
@@ -724,6 +754,8 @@
 			withDefault,
 			make,
 			parse,
+			defaultTokenErrorFormatter,
+			makeDefaultErrorFormatter,
 			defaultErrorFormatter,
 		};
 	})();
