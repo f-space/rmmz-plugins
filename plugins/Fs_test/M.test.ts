@@ -1,7 +1,7 @@
 import "./JestExt";
 import Fs from "./Fs";
 
-const { O, R, M, N } = Fs;
+const { O, R, N, M } = Fs;
 
 const parse = <A extends Fs.M.Archetype>(meta: Fs.M.Metadata, parser: A) => M.make(parser)(meta);
 

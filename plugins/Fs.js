@@ -531,119 +531,6 @@
 		};
 	})();
 
-	const M = (() => {
-		const notationError = (expected, name, value) => ({ type: 'notation', expected, name, value });
-		const attributeError = (name, source, cause) => ({ type: 'attribute', name, source, cause });
-
-		const flag = name => meta => {
-			const v = meta[name];
-			switch (v) {
-				case undefined: return R.ok(O.some(false));
-				case true: return R.ok(O.some(true));
-				default: return R.err(notationError('flag', name, v));
-			}
-		};
-
-		const attr = (name, parser) => meta => {
-			const v = meta[name];
-			if (typeof v === 'string') {
-				return R.mapErr(R.map(parser(v), O.some), cause => attributeError(name, v, cause));
-			} else if (v === undefined) {
-				return R.ok(O.none());
-			} else {
-				return R.err(notationError('attr', name, v));
-			}
-		};
-		const attrN = (name, parser) => attr(name, N.make(N.iff(N.margin(parser))));
-
-		const succeed = value => () => R.ok(O.some(value));
-		const miss = () => () => R.ok(O.none());
-		const fail = error => () => R.err(error);
-		const andThen = (parser, fn) => data => R.andThen(parser(data), option => O.match(option, fn, miss)(data));
-		const orElse = (parser, fn) => data => R.andThen(parser(data), option => O.match(option, succeed, fn)(data));
-		const map = (parser, fn) => andThen(parser, value => succeed(fn(value)));
-		const mapError = (parser, fn) => data => R.mapErr(parser(data), fn);
-		const withDefault = (parser, value) => orElse(parser, () => succeed(value));
-		const oneOf = parsers => parsers.reduceRight((acc, x) => orElse(x, () => acc), miss());
-
-		const make = archetype => {
-			const arrayOf = parsers => parsers.reduce((xs, x) => andThen(xs, xs => map(x, x => [...xs, x])), succeed([]));
-			const structOf = parsers => map(arrayOf(parsers.map(entry)), Object.fromEntries);
-			const entry = ([key, parser]) => map(parser, value => [key, value]);
-
-			if (typeof archetype === 'function') {
-				return archetype;
-			} else if (typeof archetype === 'object' && archetype !== null) {
-				if (Array.isArray(archetype)) {
-					return arrayOf(archetype.map(make));
-				} else {
-					return structOf(Object.entries(archetype).map(([key, value]) => [key, make(value)]));
-				}
-			} else {
-				return () => R.ok(R.some(archetype));
-			}
-		};
-
-		const parse = (meta, parser, errorFormatter = defaultErrorFormatter) => {
-			return R.match(
-				parser(meta),
-				value => O.withDefault(value, undefined),
-				error => { throw new Error(errorFormatter(error)); },
-			);
-		};
-
-		const meta = (parser, errorFormatter) => {
-			const store = new WeakMap();
-			return meta => {
-				if (store.has(meta)) {
-					return store.get(meta);
-				} else {
-					const value = parse(meta, parser, errorFormatter);
-					store.set(meta, value);
-					return value;
-				}
-			};
-		};
-
-		const makeDefaultErrorFormatter = attributeErrorFormatter => error => {
-			switch (error?.type) {
-				case 'notation':
-					switch (error.expected) {
-						case 'flag': return `'${error.name}' metadata does not accept any arguments.`;
-						case 'attr': return `'${error.name}' metadata is not a flag.`;
-						default: return `Unknown metadata type: ${error.expected}`;
-					}
-				case 'attribute':
-					const message = attributeErrorFormatter(error.cause);
-					return `Failed to parse '${error.name}' metadata arguments. <<< ${message}`;
-				default: return `Unknown error: ${S.debug(error)}`;
-			}
-		};
-
-		// const defaultErrorFormatter = makeDefaultErrorFormatter(N.makeDefaultErrorFormatter(S.debug));
-		const defaultErrorFormatter = makeDefaultErrorFormatter(G.makeDefaultErrorFormatter(S.debug, S.debug));
-
-		return {
-			flag,
-			attr,
-			attrN,
-			succeed,
-			miss,
-			fail,
-			andThen,
-			orElse,
-			map,
-			mapError,
-			withDefault,
-			oneOf,
-			make,
-			parse,
-			meta,
-			makeDefaultErrorFormatter,
-			defaultErrorFormatter,
-		};
-	})();
-
 	const N = (() => {
 		const RE_SPACING = /^[ \r\n]*/;
 		const RE_SPACES = /^[ \r\n]+/;
@@ -760,6 +647,119 @@
 		};
 	})();
 
+	const M = (() => {
+		const notationError = (expected, name, value) => ({ type: 'notation', expected, name, value });
+		const attributeError = (name, source, cause) => ({ type: 'attribute', name, source, cause });
+
+		const flag = name => meta => {
+			const v = meta[name];
+			switch (v) {
+				case undefined: return R.ok(O.some(false));
+				case true: return R.ok(O.some(true));
+				default: return R.err(notationError('flag', name, v));
+			}
+		};
+
+		const attr = (name, parser) => meta => {
+			const v = meta[name];
+			if (typeof v === 'string') {
+				return R.mapErr(R.map(parser(v), O.some), cause => attributeError(name, v, cause));
+			} else if (v === undefined) {
+				return R.ok(O.none());
+			} else {
+				return R.err(notationError('attr', name, v));
+			}
+		};
+		const attrN = (name, parser) => attr(name, N.make(N.iff(N.margin(parser))));
+
+		const succeed = value => () => R.ok(O.some(value));
+		const miss = () => () => R.ok(O.none());
+		const fail = error => () => R.err(error);
+		const andThen = (parser, fn) => data => R.andThen(parser(data), option => O.match(option, fn, miss)(data));
+		const orElse = (parser, fn) => data => R.andThen(parser(data), option => O.match(option, succeed, fn)(data));
+		const map = (parser, fn) => andThen(parser, value => succeed(fn(value)));
+		const mapError = (parser, fn) => data => R.mapErr(parser(data), fn);
+		const withDefault = (parser, value) => orElse(parser, () => succeed(value));
+		const oneOf = parsers => parsers.reduceRight((acc, x) => orElse(x, () => acc), miss());
+
+		const make = archetype => {
+			const arrayOf = parsers => parsers.reduce((xs, x) => andThen(xs, xs => map(x, x => [...xs, x])), succeed([]));
+			const structOf = parsers => map(arrayOf(parsers.map(entry)), Object.fromEntries);
+			const entry = ([key, parser]) => map(parser, value => [key, value]);
+
+			if (typeof archetype === 'function') {
+				return archetype;
+			} else if (typeof archetype === 'object' && archetype !== null) {
+				if (Array.isArray(archetype)) {
+					return arrayOf(archetype.map(make));
+				} else {
+					return structOf(Object.entries(archetype).map(([key, value]) => [key, make(value)]));
+				}
+			} else {
+				return () => R.ok(R.some(archetype));
+			}
+		};
+
+		const parse = (meta, parser, errorFormatter = defaultErrorFormatter) => {
+			return R.match(
+				parser(meta),
+				value => O.withDefault(value, undefined),
+				error => { throw new Error(errorFormatter(error)); },
+			);
+		};
+
+		const meta = (parser, errorFormatter) => {
+			const store = new WeakMap();
+			return meta => {
+				if (store.has(meta)) {
+					return store.get(meta);
+				} else {
+					const value = parse(meta, parser, errorFormatter);
+					store.set(meta, value);
+					return value;
+				}
+			};
+		};
+
+		const makeDefaultErrorFormatter = attributeErrorFormatter => error => {
+			switch (error?.type) {
+				case 'notation':
+					switch (error.expected) {
+						case 'flag': return `'${error.name}' metadata does not accept any arguments.`;
+						case 'attr': return `'${error.name}' metadata is not a flag.`;
+						default: return `Unknown metadata type: ${error.expected}`;
+					}
+				case 'attribute':
+					const message = attributeErrorFormatter(error.cause);
+					return `Failed to parse '${error.name}' metadata arguments. <<< ${message}`;
+				default: return `Unknown error: ${S.debug(error)}`;
+			}
+		};
+
+		// const defaultErrorFormatter = makeDefaultErrorFormatter(N.makeDefaultErrorFormatter(S.debug));
+		const defaultErrorFormatter = makeDefaultErrorFormatter(G.makeDefaultErrorFormatter(S.debug, S.debug));
+
+		return {
+			flag,
+			attr,
+			attrN,
+			succeed,
+			miss,
+			fail,
+			andThen,
+			orElse,
+			map,
+			mapError,
+			withDefault,
+			oneOf,
+			make,
+			parse,
+			meta,
+			makeDefaultErrorFormatter,
+			defaultErrorFormatter,
+		};
+	})();
+
 	const Z = (() => {
 		const ID_SYMBOL = Symbol("id");
 
@@ -855,5 +855,5 @@
 		return { pluginName, redef, extProp, extend, swapper, context, defer, enclose };
 	})();
 
-	globalThis.Fs = { O, R, L, S, U, G, P, M, N, Z };
+	globalThis.Fs = { O, R, L, S, U, G, P, N, M, Z };
 };

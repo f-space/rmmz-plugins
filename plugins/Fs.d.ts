@@ -256,69 +256,6 @@ declare namespace P {
 	const defaultErrorFormatter: ErrorFormatter<unknown>;
 }
 
-type M = typeof M;
-declare namespace M {
-	type Data = { meta: Metadata; };
-	type Metadata = { [key: string]: string | true; };
-
-	type Parser<T, E> = (meta: Metadata) => R.Result<O.Option<T>, E>;
-
-	type NotationError = {
-		type: 'notation';
-		expected: 'flag' | 'attr';
-		name: string;
-		value: string | true;
-	};
-	type AttributeError<C> = {
-		type: 'attribute';
-		name: string;
-		source: string;
-		cause: C;
-	};
-
-	type AttrParser<T, C> = (source: string) => R.Result<T, C>;
-	type OneOf<P> = OneOfRec<P, never, never>;
-	// type OneOfRec<P, T, E> = P extends readonly [Parser<infer U, infer F>, ...infer Rest]
-	// 	? OneOfRec<Rest, T | U, E | F>
-	// 	: Parser<T, E>;
-	type OneOfRec<P, T, E> = P extends readonly [Parser<infer U, infer F>, ...infer Rest]
-		? { 0: OneOfRec<Rest, T | U, E | F>; }[Zero<P>]
-		: Parser<T, E>;
-	type Archetype = Parser<any, any> | readonly [Archetype, ...Archetype[]] | { [key: string]: Archetype; };
-	type Make<A> = Parser<MakeValue<A>, MakeError<A>>;
-	type MakeValue<A> =
-		A extends Parser<infer T, any> ? T :
-		A extends object ? { [K in keyof A]: MakeValue<A[K]> } : never;
-	// type MakeError<A> =
-	// 	A extends Parser<any, infer E> ? E :
-	// 	A extends readonly [infer F, ...infer R] ? MakeError<F> | MakeError<R> :
-	// 	A extends { [key: string]: Archetype; } ? MakeError<A[keyof A]> : never;
-	type MakeError<A> =
-		A extends Parser<any, infer E> ? E :
-		A extends readonly [infer F, ...infer R] ? { 0: MakeError<F> | MakeError<R>; }[Zero<A>] :
-		A extends { [key: string]: Archetype; } ? { 0: MakeError<A[keyof A]>; }[Zero<A>] : never;
-	type Meta<T> = (meta: Metadata) => T;
-	type ErrorFormatter<E> = (error: E) => string;
-
-	const flag: (name: string) => Parser<boolean, NotationError>;
-	const attr: <T, C>(name: string, parser: AttrParser<T, C>) => Parser<T, NotationError | AttributeError<C>>;
-	const attrN: <T, C>(name: string, parser: N.Parser<T, C>) => Parser<T, NotationError | AttributeError<C>>;
-	const succeed: <T>(value: T) => Parser<T, never>;
-	const miss: () => Parser<never, never>;
-	const fail: <E>(error: E) => Parser<never, E>;
-	const andThen: <T, U, E, F>(parser: Parser<T, E>, fn: (value: T) => Parser<U, F>) => Parser<U, E | F>;
-	const orElse: <T, U, E, F>(parser: Parser<T, E>, fn: () => Parser<U, F>) => Parser<U, E | F>;
-	const map: <T, U, E>(parser: Parser<T, E>, fn: (value: T) => U) => Parser<U, E>;
-	const mapError: <T, E, F>(parser: Parser<T, E>, fn: (error: E) => F) => Parser<T, F>;
-	const withDefault: <T, E>(parser: Parser<T, E>, value: T) => Parser<T, E>;
-	const oneOf: <P extends readonly Parser<any, any>[]>(parsers: readonly [...P]) => OneOf<P>;
-	const make: <A extends Archetype>(archetype: A) => Make<A>;
-	const parse: <T, E>(meta: Metadata, parser: Parser<T, E>, errorFormatter?: ErrorFormatter<E>) => T;
-	const meta: <T, E>(parser: Parser<T, E>, errorFormatter?: ErrorFormatter<E>) => Meta<T>;
-	const makeDefaultErrorFormatter: (attributeErrorFormatter: ErrorFormatter<unknown>) => ErrorFormatter<unknown>;
-	const defaultErrorFormatter: ErrorFormatter<unknown>;
-}
-
 type N = typeof N;
 declare namespace N {
 	type Source = string;
@@ -386,6 +323,69 @@ declare namespace N {
 	const defaultErrorFormatter: ErrorFormatter<unknown>;
 }
 
+type M = typeof M;
+declare namespace M {
+	type Data = { meta: Metadata; };
+	type Metadata = { [key: string]: string | true; };
+
+	type Parser<T, E> = (meta: Metadata) => R.Result<O.Option<T>, E>;
+
+	type NotationError = {
+		type: 'notation';
+		expected: 'flag' | 'attr';
+		name: string;
+		value: string | true;
+	};
+	type AttributeError<C> = {
+		type: 'attribute';
+		name: string;
+		source: string;
+		cause: C;
+	};
+
+	type AttrParser<T, C> = (source: string) => R.Result<T, C>;
+	type OneOf<P> = OneOfRec<P, never, never>;
+	// type OneOfRec<P, T, E> = P extends readonly [Parser<infer U, infer F>, ...infer Rest]
+	// 	? OneOfRec<Rest, T | U, E | F>
+	// 	: Parser<T, E>;
+	type OneOfRec<P, T, E> = P extends readonly [Parser<infer U, infer F>, ...infer Rest]
+		? { 0: OneOfRec<Rest, T | U, E | F>; }[Zero<P>]
+		: Parser<T, E>;
+	type Archetype = Parser<any, any> | readonly [Archetype, ...Archetype[]] | { [key: string]: Archetype; };
+	type Make<A> = Parser<MakeValue<A>, MakeError<A>>;
+	type MakeValue<A> =
+		A extends Parser<infer T, any> ? T :
+		A extends object ? { [K in keyof A]: MakeValue<A[K]> } : never;
+	// type MakeError<A> =
+	// 	A extends Parser<any, infer E> ? E :
+	// 	A extends readonly [infer F, ...infer R] ? MakeError<F> | MakeError<R> :
+	// 	A extends { [key: string]: Archetype; } ? MakeError<A[keyof A]> : never;
+	type MakeError<A> =
+		A extends Parser<any, infer E> ? E :
+		A extends readonly [infer F, ...infer R] ? { 0: MakeError<F> | MakeError<R>; }[Zero<A>] :
+		A extends { [key: string]: Archetype; } ? { 0: MakeError<A[keyof A]>; }[Zero<A>] : never;
+	type Meta<T> = (meta: Metadata) => T;
+	type ErrorFormatter<E> = (error: E) => string;
+
+	const flag: (name: string) => Parser<boolean, NotationError>;
+	const attr: <T, C>(name: string, parser: AttrParser<T, C>) => Parser<T, NotationError | AttributeError<C>>;
+	const attrN: <T, C>(name: string, parser: N.Parser<T, C>) => Parser<T, NotationError | AttributeError<C>>;
+	const succeed: <T>(value: T) => Parser<T, never>;
+	const miss: () => Parser<never, never>;
+	const fail: <E>(error: E) => Parser<never, E>;
+	const andThen: <T, U, E, F>(parser: Parser<T, E>, fn: (value: T) => Parser<U, F>) => Parser<U, E | F>;
+	const orElse: <T, U, E, F>(parser: Parser<T, E>, fn: () => Parser<U, F>) => Parser<U, E | F>;
+	const map: <T, U, E>(parser: Parser<T, E>, fn: (value: T) => U) => Parser<U, E>;
+	const mapError: <T, E, F>(parser: Parser<T, E>, fn: (error: E) => F) => Parser<T, F>;
+	const withDefault: <T, E>(parser: Parser<T, E>, value: T) => Parser<T, E>;
+	const oneOf: <P extends readonly Parser<any, any>[]>(parsers: readonly [...P]) => OneOf<P>;
+	const make: <A extends Archetype>(archetype: A) => Make<A>;
+	const parse: <T, E>(meta: Metadata, parser: Parser<T, E>, errorFormatter?: ErrorFormatter<E>) => T;
+	const meta: <T, E>(parser: Parser<T, E>, errorFormatter?: ErrorFormatter<E>) => Meta<T>;
+	const makeDefaultErrorFormatter: (attributeErrorFormatter: ErrorFormatter<unknown>) => ErrorFormatter<unknown>;
+	const defaultErrorFormatter: ErrorFormatter<unknown>;
+}
+
 type Z = typeof Z;
 declare namespace Z {
 	type Define<T, D extends Partial<T>> = (base: (this_: T) => T) => D & ThisType<T>;
@@ -414,7 +414,7 @@ declare namespace Z {
 declare global {
 	type Fs = typeof Fs;
 	namespace Fs {
-		export { O, R, L, S, U, G, P, M, N, Z };
+		export { O, R, L, S, U, G, P, N, M, Z };
 	}
 }
 
