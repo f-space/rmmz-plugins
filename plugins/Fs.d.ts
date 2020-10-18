@@ -169,8 +169,8 @@ declare namespace G {
 	const optional: <S, P>(parser: Parser<S, P, unknown>) => Parser<S, O.Option<P>, never>;
 	const many: <S, P>(parser: Parser<S, P, unknown>) => Parser<S, P[], never>;
 	const many1: <S, P, E>(parser: Parser<S, P, E>) => Parser<S, P[], E>;
-	const and: <S, E>(parser: Parser<S, unknown, E>) => Parser<S, null, E extends never ? never : AndError<S, E>>;
-	const not: <S, T>(parser: Parser<S, T, unknown>) => Parser<S, null, T extends never ? never : NotError<S, T>>;
+	const and: <S, T, E, F>(pred: Parser<S, unknown, F>, parser: Parser<S, T, E>) => Parser<S, T, E | AndError<S, F>>;
+	const not: <S, T, U, E>(pred: Parser<S, U, unknown>, parser: Parser<S, T, E>) => Parser<S, T, E | NotError<S, U>>;
 	const validate: <S, T, U, E, V>(parser: Parser<S, T, E>, validator: Validator<T, U, V>)
 		=> Parser<S, U, E | ValidationError<S, V>>;
 	const memo: <S, T, E>(parser: Parser<S, T, E>) => Parser<S, T, E>;

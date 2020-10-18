@@ -96,17 +96,13 @@ test("many1", () => {
 });
 
 test("and", () => {
-	expect(parse("a", G.and(char("a")))).toEqualOk(null);
-	expect(parse("a", G.andThen(G.and(char("a")), () => char("a")))).toEqualOk("a");
-	expect(parse("b", G.and(char("a")))).toMatchErr(andError(0, tokenError(0, "a")));
-	expect(parse("b", G.andThen(G.and(char("a")), () => char("b")))).toMatchErr(andError(0, tokenError(0, "a")));
+	expect(parse("a", G.and(char("a"), char("a")))).toEqualOk("a");
+	expect(parse("a", G.and(char("b"), char("a")))).toMatchErr(andError(0, tokenError(0, "b")));
 });
 
 test("not", () => {
-	expect(parse("b", G.not(char("a")))).toEqualOk(null);
-	expect(parse("b", G.andThen(G.not(char("a")), () => char("b")))).toEqualOk("b");
-	expect(parse("a", G.not(char("a")))).toMatchErr(notError(0, "a"));
-	expect(parse("a", G.andThen(G.not(char("a")), () => char("a")))).toMatchErr(notError(0, "a"));
+	expect(parse("a", G.not(char("b"), char("a")))).toEqualOk("a");
+	expect(parse("a", G.not(char("a"), char("a")))).toMatchErr(notError(0, "a"));
 });
 
 test("validate", () => {

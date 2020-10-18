@@ -343,8 +343,8 @@
 		const optional = parser => choice(map(parser, O.some), succeed(O.none()));
 		const many = parser => map(loop(parser, L.nil()), toArray);
 		const many1 = parser => map(andThen(parser, value => loop(parser, L.singleton(value))), toArray);
-		const and = parser => context => R.match(parser(context), () => R.ok([null, context]), error => R.err(andError(context, error)));
-		const not = parser => context => R.match(parser(context), ([value]) => R.err(notError(context, value)), () => R.ok([null, context]));
+		const and = (pred, parser) => context => R.match(pred(context), () => parser(context), error => R.err(andError(context, error)));
+		const not = (pred, parser) => context => R.match(pred(context), ([value]) => R.err(notError(context, value)), () => parser(context));
 		const validate = (parser, validator) => wrapError(andThen(parser, try_(validator)), validationError);
 
 		const memo = parser => context => {
