@@ -736,8 +736,7 @@
 			}
 		};
 
-		// const defaultErrorFormatter = makeDefaultErrorFormatter(N.makeDefaultErrorFormatter(S.debug));
-		const defaultErrorFormatter = makeDefaultErrorFormatter(G.makeDefaultErrorFormatter(S.debug, S.debug));
+		const defaultErrorFormatter = makeDefaultErrorFormatter(N.makeDefaultErrorFormatter(S.debug));
 
 		return {
 			flag,
