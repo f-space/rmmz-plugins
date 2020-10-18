@@ -61,23 +61,23 @@ test("redef", () => {
 test("extProp", () => {
 	const x = new class X { };
 
-	const [getFoo, setFoo, deleteFoo] = Z.extProp("foo");
-	expect(getFoo(x)).toBe("foo");
-	setFoo(x, "abc");
-	expect(getFoo(x)).toBe("abc");
-	deleteFoo(x);
-	expect(getFoo(x)).toBe("foo");
+	const fooProp = Z.extProp("foo");
+	expect(fooProp.get(x)).toBe("foo");
+	fooProp.set(x, "abc");
+	expect(fooProp.get(x)).toBe("abc");
+	fooProp.delete(x);
+	expect(fooProp.get(x)).toBe("foo");
 
-	const [getBar, setBar, deleteBar, clearBar] = Z.extProp("bar", true);
-	expect(getBar(x)).toBe("bar");
-	setBar(x, "123");
-	expect(getBar(x)).toBe("123");
-	deleteBar(x);
-	expect(getBar(x)).toBe("bar");
-	setBar(x, "456");
-	expect(getBar(x)).toBe("456");
-	clearBar();
-	expect(getBar(x)).toBe("bar");
+	const barProp = Z.extProp("bar", true);
+	expect(barProp.get(x)).toBe("bar");
+	barProp.set(x, "123");
+	expect(barProp.get(x)).toBe("123");
+	barProp.delete(x);
+	expect(barProp.get(x)).toBe("bar");
+	barProp.set(x, "456");
+	expect(barProp.get(x)).toBe("456");
+	barProp.clear();
+	expect(barProp.get(x)).toBe("bar");
 });
 
 test("extend", () => {

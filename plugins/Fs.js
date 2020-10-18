@@ -796,26 +796,26 @@
 
 		const propWithMap = defaultValue => {
 			const store = new Map();
-			const getter = owner => (key => store.has(key) ? store.get(key) : defaultValue)(id(owner));
-			const setter = (owner, value) => void store.set(id(owner), value);
-			const deleter = owner => void store.delete(id(owner));
-			const clearer = () => store.clear();
-			return [getter, setter, deleter, clearer];
+			const get = owner => (key => store.has(key) ? store.get(key) : defaultValue)(id(owner));
+			const set = (owner, value) => void store.set(id(owner), value);
+			const delete_ = owner => void store.delete(id(owner));
+			const clear = () => store.clear();
+			return { get, set, delete: delete_, clear };
 		};
 
 		const propWithWeakMap = defaultValue => {
 			const store = new WeakMap();
-			const getter = owner => (key => store.has(key) ? store.get(key) : defaultValue)(id(owner));
-			const setter = (owner, value) => void store.set(id(owner), value);
-			const deleter = owner => void store.delete(id(owner));
-			return [getter, setter, deleter];
+			const get = owner => (key => store.has(key) ? store.get(key) : defaultValue)(id(owner));
+			const set = (owner, value) => void store.set(id(owner), value);
+			const delete_ = owner => void store.delete(id(owner));
+			return { get, set, delete: delete_ };
 		};
 
 		const extend = (target, name, prop) => {
-			const [getter, setter] = prop;
+			const { get, set } = prop;
 			Object.defineProperty(target, name, {
-				get() { return getter(this); },
-				set(value) { setter(this, value); },
+				get() { return get(this); },
+				set(value) { set(this, value); },
 				configurable: true,
 			});
 		};
@@ -830,7 +830,7 @@
 		};
 
 		const context = defaultValue => {
-			const [getContext, setContext] = propWithWeakMap(O.none());
+			const { get: getContext, set: setContext } = propWithWeakMap(O.none());
 			const enter = (owner, value, block) => {
 				const current = getContext(owner);
 				return enclose(

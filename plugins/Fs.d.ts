@@ -390,10 +390,12 @@ declare namespace M {
 type Z = typeof Z;
 declare namespace Z {
 	type Define<T, D extends Partial<T>> = (base: (this_: T) => T) => D & ThisType<T>;
-	type Getter<T> = (owner: unknown) => T;
-	type Setter<T> = (owner: unknown, value: T) => void;
-	type Deleter = (owner: unknown) => void;
-	type Clearer = () => void;
+	type ExtProp<T> = {
+		get: (owner: unknown) => T;
+		set: (owner: unknown, value: T) => void;
+	};
+	type WeakExtProp<T> = ExtProp<T> & { delete: (owner: unknown) => void; };
+	type FullExtProp<T> = WeakExtProp<T> & { clear: () => void; };
 	type Swapper<K extends string> = <O extends { [P in K]: any }, R>(owner: O, value: O[K], block: () => R) => R;
 	type Context<T> = {
 		enter<R>(owner: unknown, value: T, block: () => R): R;
@@ -403,9 +405,9 @@ declare namespace Z {
 
 	const pluginName: () => string | undefined;
 	const redef: <T, D>(target: T, define: Define<T, D>) => void;
-	const extProp: (<T>(defaultValue: T, nonWeak?: false) => [Getter<T>, Setter<T>, Deleter])
-		& (<T>(defaultValue: T, nonWeak: true) => [Getter<T>, Setter<T>, Deleter, Clearer]);
-	const extend: <T>(target: unknown, name: string, prop: readonly [Getter<T>, Setter<T>, ...unknown[]]) => void;
+	const extProp: (<T>(defaultValue: T, nonWeak?: false) => WeakExtProp<T>)
+		& (<T>(defaultValue: T, nonWeak: true) => FullExtProp<T>);
+	const extend: <T>(target: unknown, name: string, prop: ExtProp<T>) => void;
 	const swapper: <K extends string>(key: K) => Swapper<K>;
 	const context: <T>(defaultValue: T) => Context<T>;
 	const defer: (cleanup: () => void) => <R>(block: () => R) => R;
