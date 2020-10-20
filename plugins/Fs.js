@@ -156,9 +156,8 @@
 		const ellipsis = (s, length) => s.length > length ? s.slice(0, length - ELLIPSIS.length) + ELLIPSIS : s;
 
 		const debug = (value, replacer) => {
-			const processed = new Set();
-
-			const rec = value => {
+			const rec = (value, context) => {
+				const { replacer } = context;
 				const v = replacer !== undefined ? replacer(value) : value;
 				switch (typeof v) {
 					case 'undefined': return String(v);
@@ -167,70 +166,60 @@
 					case 'boolean': return String(v);
 					case 'symbol': return String(v);
 					case 'bigint': return `${v}n`;
-					case 'object': return v === null ? "null" : object(v);
-					case 'function': return `[Function: ${name(value)}]`;
+					case 'object': return object(v, context);
+					case 'function': return `[Function: ${name(v)}]`;
 					default: return "<unknown>";
 				}
 			};
 
-			const object = value => {
-				if (processed.has(value)) {
-					return "...";
-				} else {
-					processed.add(value);
-					return objectCore(value);
-				}
+			const name = ({ name }) => typeof name === 'string' && name !== "" ? name : "(anonymous)";
+
+			const object = (value, context) => {
+				const { stack } = context;
+				if (value === null) return "null";
+				if (stack.includes(value)) return "...";
+				return objectCore(value, { ...context, stack: [...stack, value] });
 			};
 
-			const objectCore = value => {
-				if (Array.isArray(value)) {
-					return value.length !== 0 ? `[ ${value.map(rec).join(", ")} ]` : "[]";
-				} else if (value instanceof RegExp) {
-					return String(value);
-				} else if (value instanceof Date) {
-					return value.toISOString();
-				} else {
-					const type = objectType(value);
-					const entries = objectEntries(value);
-					const label = type !== undefined ? `${type} ` : "";
-					const contents = entries !== "" ? `{ ${entries} }` : "{}";
-					return label + contents;
-				}
+			const objectCore = (value, context) => {
+				const array = (value, step) => value.length !== 0 ? `[ ${value.map(step).join(", ")} ]` : "[]";
+
+				const step = value => rec(value, context);
+				if (Array.isArray(value)) return array(value, step);
+				if (value instanceof RegExp) return String(value);
+				if (value instanceof Date) return value.toISOString();
+				return normalObject(value, step);
+			};
+
+			const normalObject = (value, step) => {
+				const type = objectType(value);
+				const entries = objectEntries(value, step);
+				const label = type !== undefined ? `${type} ` : "";
+				const contents = entries !== "" ? `{ ${entries} }` : "{}";
+				return label + contents;
 			};
 
 			const objectType = value => {
 				const prototype = Object.getPrototypeOf(value);
-				if (prototype === null) {
-					return "(null)";
-				} else if (prototype === Object.prototype) {
-					return undefined;
-				} else {
-					return name(prototype.constructor);
-				}
+				if (prototype === null) return "(null)";
+				if (prototype === Object.prototype) return undefined;
+				return name(prototype.constructor);
 			};
 
-			const objectEntries = value => {
-				if (value instanceof Map) {
-					return Array.from(value).map(entry => entry.map(rec).join(" => ")).join(", ");
-				} else if (value instanceof Set) {
-					return Array.from(value).map(rec).join(", ");
-				} else if (value instanceof WeakMap || value instanceof WeakSet) {
-					return "<***>";
-				} else {
-					return Object.entries(value).map(([k, v]) => {
-						const label = /^[a-z_$][a-z0-9_$]*$/i.test(k) ? k : JSON.stringify(k);
-						const value = rec(v);
-						return `${label}: ${value}`;
-					}).join(", ");
-				}
+			const objectEntries = (value, step) => {
+				const map = (value, step) => Array.from(value).map(entry => entry.map(step).join(" => ")).join(", ");
+				const set = (value, step) => Array.from(value).map(step).join(", ");
+				const other = (value, step) => Object.entries(value).map(([k, v]) => `${key(k)}: ${step(v)}`).join(", ");
+				const key = s => /^[a-z_$][a-z0-9_$]*$/i.test(s) ? s : JSON.stringify(s);
+
+				if (value instanceof Map) return map(value, step);
+				if (value instanceof Set) return set(value, step);
+				if (value instanceof WeakMap) return "<***>";
+				if (value instanceof WeakSet) return "<***>";
+				return other(value, step);
 			};
 
-			const name = value => {
-				const { name } = value;
-				return typeof name === 'string' && name !== "" ? name : "(anonymous)";
-			};
-
-			return rec(value);
+			return rec(value, { replacer, stack: [] });
 		};
 
 		return { ellipsis, debug };
