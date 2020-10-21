@@ -751,8 +751,6 @@
 	})();
 
 	const Z = (() => {
-		const ID_SYMBOL = Symbol("id");
-
 		const pluginName = () => document.currentScript?.src.match(/\/([^\/]*)\.js$/)?.[1];
 
 		const redef = (target, define) => {
@@ -778,25 +776,23 @@
 			}
 		};
 
-		const id = obj => obj[ID_SYMBOL] ?? Object.defineProperty(obj, ID_SYMBOL, { value: {} })[ID_SYMBOL];
-
 		const extProp = (defaultValue, nonWeak = false) =>
 			nonWeak ? propWithMap(defaultValue) : propWithWeakMap(defaultValue);
 
 		const propWithMap = defaultValue => {
 			const store = new Map();
-			const get = owner => (key => store.has(key) ? store.get(key) : defaultValue)(id(owner));
-			const set = (owner, value) => void store.set(id(owner), value);
-			const delete_ = owner => void store.delete(id(owner));
+			const get = key => store.has(key) ? store.get(key) : defaultValue;
+			const set = (key, value) => void store.set(key, value);
+			const delete_ = key => void store.delete(key);
 			const clear = () => store.clear();
 			return { get, set, delete: delete_, clear };
 		};
 
 		const propWithWeakMap = defaultValue => {
 			const store = new WeakMap();
-			const get = owner => (key => store.has(key) ? store.get(key) : defaultValue)(id(owner));
-			const set = (owner, value) => void store.set(id(owner), value);
-			const delete_ = owner => void store.delete(id(owner));
+			const get = key => store.has(key) ? store.get(key) : defaultValue;
+			const set = (key, value) => void store.set(key, value);
+			const delete_ = key => void store.delete(key);
 			return { get, set, delete: delete_ };
 		};
 
