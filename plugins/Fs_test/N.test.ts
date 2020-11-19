@@ -5,8 +5,8 @@ const { N } = Fs;
 
 const parse = <T, E>(source: string, parser: Fs.N.Parser<T, E>) => N.make(parser)(source);
 
-const tokenError = (position: number, name: string) => ({ type: 'token', context: { position }, name });
-const eofError = (position: number) => ({ type: 'eof', context: { position } });
+const tokenError = (position: number, name: string) => ({ type: 'token' as const, context: { position }, name });
+const eofError = (position: number) => ({ type: 'eof' as const, context: { position } });
 
 test("symbol", () => {
 	expect(parse("foo", N.symbol("foo"))).toEqualOk("foo");

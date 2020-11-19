@@ -5,12 +5,12 @@ const { O, R, S, U, G } = Fs;
 
 const parse = <S, T, E>(source: S, parser: Fs.G.Parser<S, T, E>) => G.make(parser)(source);
 
-const tokenError = (position: number, name: string) => ({ type: 'token', context: { position }, name });
-const eofError = (position: number) => ({ type: 'eof', context: { position } });
-const pathError = <E>(position: number, errors: E[]) => ({ type: 'path', context: { position }, errors });
-const andError = <E>(position: number, error: E) => ({ type: 'and', context: { position }, error });
-const notError = <T>(position: number, value: T) => ({ type: 'not', context: { position }, value });
-const validationError = <C>(position: number, cause: C) => ({ type: 'validation', context: { position }, cause });
+const tokenError = (position: number, name: string) => ({ type: 'token' as const, context: { position }, name });
+const eofError = (position: number) => ({ type: 'eof' as const, context: { position } });
+const pathError = <E extends any[]>(position: number, errors: [...E]) => ({ type: 'path' as const, context: { position }, errors });
+const andError = <E>(position: number, error: E) => ({ type: 'and' as const, context: { position }, error });
+const notError = <T>(position: number, value: T) => ({ type: 'not' as const, context: { position }, value });
+const validationError = <C>(position: number, cause: C) => ({ type: 'validation' as const, context: { position }, cause });
 
 const char = (c: string) => G.token(c, (s: string, i) =>
 	s[i] === c ? R.ok([c, i + 1]) : R.err(() => `"${s[i]}" !== "${c}"`)

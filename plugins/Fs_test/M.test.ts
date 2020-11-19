@@ -6,8 +6,8 @@ const { O, R, N, M } = Fs;
 const parse = <A extends Fs.M.Archetype>(meta: Fs.M.Metadata, parser: A) => M.make(parser)(meta);
 
 const notationError = (expected: 'flag' | 'attr', name: string, value: string | true) =>
-	({ type: 'notation', expected, name, value });
-const attributeError = <C>(cause: C) => ({ type: 'attribute', cause });
+	({ type: 'notation' as const, expected, name, value });
+const attributeError = <C>(cause: C) => ({ type: 'attribute' as const, cause });
 
 test("flag", () => {
 	expect(parse({ foo: true }, M.flag("foo"))).toEqualOk(O.some(true));

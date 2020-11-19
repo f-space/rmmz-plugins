@@ -5,9 +5,9 @@ const { R, P } = Fs;
 
 const parse = <T, E>(s: string, parser: Fs.P.Parser<T, E>) => parser(s);
 
-const formatError = <K extends string>(expected: K) => ({ type: 'format', expected });
-const jsonError = () => ({ type: 'json' });
-const validationError = <V>(cause: V) => ({ type: 'validation', cause });
+const formatError = <K extends string>(expected: K) => ({ type: 'format' as const, expected });
+const jsonError = () => ({ type: 'json' as const });
+const validationError = <V>(cause: V) => ({ type: 'validation' as const, cause });
 
 test("succeed", () => {
 	expect(parse("", P.succeed(42))).toEqualOk(42);

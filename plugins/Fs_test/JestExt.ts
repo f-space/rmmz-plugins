@@ -1,14 +1,16 @@
 import Fs from "./Fs";
 
-type PartialRec<T> = { [P in keyof T]?: PartialRec<T> };
+type PartialRec<T> =
+	T extends readonly any[] ? ArrayLike<PartialRec<T[number]>> :
+	{ [P in keyof T]?: PartialRec<T[P]> };
 
 declare global {
 	module jest {
 		interface Matchers<R, T> {
-			toEqualOk(value: T extends Fs.R.Result<infer V, any> ? V : never): R;
-			toEqualErr(error: T extends Fs.R.Result<any, infer E> ? E : never): R;
-			toMatchOk(value: T extends Fs.R.Result<infer V, any> ? PartialRec<V> : never): R;
-			toMatchErr(error: T extends Fs.R.Result<any, infer E> ? PartialRec<E> : never): R;
+			toEqualOk(value: T extends Fs.R.Ok<infer V> ? V : never): R;
+			toEqualErr(error: T extends Fs.R.Err<infer E> ? E : never): R;
+			toMatchOk(value: T extends Fs.R.Ok<infer V> ? PartialRec<V> : never): R;
+			toMatchErr(error: T extends Fs.R.Err<infer E> ? PartialRec<E> : never): R;
 		}
 	}
 }
