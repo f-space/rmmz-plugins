@@ -375,7 +375,7 @@ declare namespace M {
 	const miss: () => Parser<never, never>;
 	const fail: <E>(error: E) => Parser<never, E>;
 	const andThen: <T, U, E, F>(parser: Parser<T, E>, fn: (value: T) => Parser<U, F>) => Parser<U, E | F>;
-	const orElse: <T, U, E, F>(parser: Parser<T, E>, fn: () => Parser<U, F>) => Parser<U, E | F>;
+	const orElse: <T, U, E, F>(parser: Parser<T, E>, fn: () => Parser<U, F>) => Parser<T | U, E | F>;
 	const map: <T, U, E>(parser: Parser<T, E>, fn: (value: T) => U) => Parser<U, E>;
 	const mapError: <T, E, F>(parser: Parser<T, E>, fn: (error: E) => F) => Parser<T, F>;
 	const withDefault: <T, E>(parser: Parser<T, E>, value: T) => Parser<T, E>;
