@@ -19,22 +19,38 @@ const { R } = Fs;
 
 expect.extend({
 	toEqualOk<T>(received: unknown, value: T) {
-		expect(received).toEqual(R.ok(value));
+		if (this.isNot) {
+			expect(received).not.toEqual(R.ok(value));
+		} else {
+			expect(received).toEqual(R.ok(value));
+		}
 
 		return { pass: !this.isNot, message: () => "" };
 	},
 	toEqualErr<E>(received: unknown, error: E) {
-		expect(received).toEqual(R.err(error));
+		if (this.isNot) {
+			expect(received).not.toEqual(R.err(error));
+		} else {
+			expect(received).toEqual(R.err(error));
+		}
 
 		return { pass: !this.isNot, message: () => "" };
 	},
 	toMatchOk<T>(received: unknown, value: T) {
-		expect(received).toMatchObject(R.ok(value));
+		if (this.isNot) {
+			expect(received).not.toMatchObject(R.ok(value));
+		} else {
+			expect(received).toMatchObject(R.ok(value));
+		}
 
 		return { pass: !this.isNot, message: () => "" };
 	},
 	toMatchErr<E>(received: unknown, error: E) {
-		expect(received).toMatchObject(R.err(error));
+		if (this.isNot) {
+			expect(received).not.toMatchObject(R.err(error));
+		} else {
+			expect(received).toMatchObject(R.err(error));
+		}
 
 		return { pass: !this.isNot, message: () => "" };
 	}
