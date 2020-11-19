@@ -117,10 +117,10 @@ declare namespace G {
 		type: 'eof';
 		context: Context<S>;
 	};
-	type PathError<S, E> = {
+	type PathError<S, E extends any[]> = {
 		type: 'path';
 		context: Context<S>;
-		errors: E[];
+		errors: E;
 	};
 	type AndError<S, E> = {
 		type: 'and';
