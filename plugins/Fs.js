@@ -563,7 +563,7 @@
 			const match = slice.match(re);
 			if (match !== null && match.index === 0) {
 				const token = match[0];
-				const value = fn !== undefined ? fn(token, match) : token;
+				const value = fn !== undefined ? fn(...match) : token;
 				return R.ok([value, start + token.length]);
 			} else {
 				return R.err(regexpError(source, start, re));

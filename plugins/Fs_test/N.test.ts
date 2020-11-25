@@ -14,7 +14,7 @@ test("symbol", () => {
 });
 
 test("regexp", () => {
-	const parser = N.regexp("range", /^(\d+)\.\.(\d+)/, (_: any, [, fst, snd]: string[]) => {
+	const parser = N.regexp("range", /^(\d+)\.\.(\d+)/, (_, fst, snd) => {
 		return [fst, snd].map(x => Number.parseInt(x, 10));
 	});
 	expect(parse("24..42", parser)).toEqualOk([24, 42]);

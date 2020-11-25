@@ -276,7 +276,7 @@ declare namespace N {
 	const validate: <T, U, E, V>(parser: Parser<T, E>, validator: Validator<T, U, V>)
 		=> Parser<U, E | ValidationError<V>>;
 	const symbol: <S extends string>(s: S) => Parser<S, TokenError<SymbolError>>;
-	const regexp: <T = string>(name: string, re: RegExp, fn?: (s: string, match: RegExpMatchArray) => T)
+	const regexp: <T = string>(name: string, re: RegExp, fn?: (...captures: string[]) => T)
 		=> Parser<T, TokenError<RegexpError>>;
 	const spacing: Parser<string, never>;
 	const spaces: Parser<string, TokenError<RegexpError>>;
