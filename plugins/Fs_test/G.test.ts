@@ -52,10 +52,16 @@ test("fail", () => {
 
 test("andThen", () => {
 	expect(parse("ab", G.andThen(char("a"), () => char("b")))).toEqualOk("b");
+	expect(parse("bb", G.andThen(char("a"), () => char("b")))).toMatchErr(tokenError(0, "a"));
+	expect(parse("aa", G.andThen(char("a"), () => char("b")))).toMatchErr(tokenError(1, "b"));
+	expect(parse("a", G.andThen(char("a"), value => G.succeed(value)))).toEqualOk("a");
 });
 
 test("orElse", () => {
-	expect(parse("ab", G.orElse(char("b"), () => char("a")))).toEqualOk("a");
+	expect(parse("a", G.orElse(char("a"), () => char("b")))).toEqualOk("a");
+	expect(parse("b", G.orElse(char("a"), () => char("b")))).toEqualOk("b");
+	expect(parse("c", G.orElse(char("a"), () => char("b")))).toMatchErr(tokenError(0, "b"));
+	expect(parse("x", G.orElse(char("a"), error => G.fail(error)))).toMatchErr(tokenError(0, "a"));
 });
 
 test("map", () => {
