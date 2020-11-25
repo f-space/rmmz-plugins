@@ -119,6 +119,10 @@ declare namespace G {
 	type Parser<S, T, E> = (context: Context<S>) => R.Result<[T, Context<S>], E>;
 	type BuiltParser<S, T, E> = (source: S) => R.Result<T, E>;
 
+	type ParseOptions = {
+		noCache?: boolean;
+	};
+
 	type TokenError<S, C> = {
 		type: 'token';
 		context: Context<S>;
@@ -180,7 +184,7 @@ declare namespace G {
 	const validate: <S, T, U, E, V>(parser: Parser<S, T, E>, validator: Validator<T, U, V>)
 		=> Parser<S, U, E | ValidationError<S, V>>;
 	const memo: <S, T, E>(parser: Parser<S, T, E>) => Parser<S, T, E>;
-	const make: <S, T, E>(parser: Parser<S, T, E>) => BuiltParser<S, T, E>;
+	const make: <S, T, E>(parser: Parser<S, T, E>, options?: ParseOptions) => BuiltParser<S, T, E>;
 	const parse: <S extends Source, T, E>(source: S, parser: BuiltParser<S, T, E>, errorFormatter?: ErrorFormatter<E>) => T;
 	const makeDefaultErrorFormatter: (
 		tokenErrorFormatter: ErrorFormatter<unknown>,

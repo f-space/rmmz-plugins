@@ -346,7 +346,7 @@
 
 		const memo = parser => context => {
 			const { position, cache } = context;
-			if (position < cache.length) {
+			if (cache !== null && position < cache.length) {
 				const list = cache[position];
 				const entry = L.find(list, x => x.parser === parser);
 				if (entry !== undefined) {
@@ -361,9 +361,9 @@
 			}
 		};
 
-		const make = parser => source => {
+		const make = (parser, options = {}) => source => {
 			const position = 0;
-			const cache = Array(source.length).fill(L.nil());
+			const cache = options.noCache ? null : [...new Array(source.length).fill(L.nil())];
 			const context = { source, position, cache };
 			return R.map(parser(context), ([value]) => value);
 		};
