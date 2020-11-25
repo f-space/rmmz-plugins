@@ -2,7 +2,7 @@ import Fs from "./Fs";
 
 type PartialRec<T> =
 	T extends readonly any[] ? ArrayLike<PartialRec<T[number]>> :
-	{ [P in keyof T]?: PartialRec<T[P]> };
+	T extends object ? { [P in keyof T]?: PartialRec<T[P]> } : T;
 
 declare global {
 	module jest {
