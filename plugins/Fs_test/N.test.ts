@@ -100,6 +100,12 @@ test("endWith", () => {
 	expect(parse("42;", N.endWith(N.integer))).toMatchErr(eofError(2));
 });
 
+test("withDefault", () => {
+	const command = N.join([N.integer, N.withDefault(N.map(N.symbol("--wait"), () => true), false)], N.spacing);
+	expect(parse("42 --wait", command)).toEqualOk([42, true]);
+	expect(parse("42", command)).toEqualOk([42, false]);
+});
+
 test("chain", () => {
 	const numbers = N.chain(N.natural, N.symbol("-"));
 	expect(parse("", numbers)).toEqualOk([]);
@@ -133,10 +139,4 @@ test("tuple", () => {
 	expect(parse("Open Sesame !!", password)).toEqualOk(true);
 	expect(parse("Open Barley !!", password)).toMatchErr(tokenError(5, "Sesame"));
 	expect(parse("", password)).toMatchErr(tokenError(0, "Open"));
-});
-
-test("withDefault", () => {
-	const command = N.join([N.integer, N.withDefault(N.map(N.symbol("--wait"), () => true), false)], N.spacing);
-	expect(parse("42 --wait", command)).toEqualOk([42, true]);
-	expect(parse("42", command)).toEqualOk([42, false]);
 });

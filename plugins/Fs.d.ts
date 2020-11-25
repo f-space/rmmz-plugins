@@ -292,13 +292,13 @@ declare namespace N {
 	const braces: <T, E>(parser: Parser<T, E>) => Parser<T, E | TokenError<SymbolError | RegexpError>>;
 	const brackets: <T, E>(parser: Parser<T, E>) => Parser<T, E | TokenError<SymbolError | RegexpError>>;
 	const endWith: <T, E>(parser: Parser<T, E>) => Parser<T, E | EofError>;
+	const withDefault: <T, E>(parser: Parser<T, E>, value: T) => Parser<T, E>;
 	const chain: <T>(item: Parser<T, unknown>, delimiter: Parser<unknown, unknown>) => Parser<T[], never>;
 	const chain1: <T, E>(item: Parser<T, E>, delimiter: Parser<unknown, unknown>) => Parser<T[], E>;
 	const join: <P extends readonly Parser<any, any>[], F>(items: readonly [...P], delimiter: Parser<unknown, F>)
 		=> Join<P, F>;
 	const list: <T>(parser: Parser<T, unknown>) => Parser<T[], never>;
 	const tuple: <P extends readonly Parser<any, any>[]>(parsers: readonly [...P]) => Join<P, TokenError<RegexpError>>;
-	const withDefault: <T, E>(parser: Parser<T, E>, value: T) => Parser<T, E>;
 	const make: <T, E>(parser: Parser<T, E>) => BuiltParser<T, E>;
 	const parse: <T, E>(source: Source, parser: BuiltParser<T, E>, errorFormatter?: ErrorFormatter<E>) => T;
 	const defaultTokenErrorFormatter: ErrorFormatter<unknown>;

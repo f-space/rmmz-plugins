@@ -586,14 +586,14 @@
 		const brackets = parser => group(parser, symbol("["), symbol("]"));
 		const endWith = parser => G.andThen(parser, value => G.map(G.eof(), () => value));
 
-		const flatten = parser => map(parser, ([first, rest]) => [first, ...rest.map(([, item]) => item)]);
+		const withDefault = (parser, value) => map(G.optional(parser), option => O.withDefault(option, value));
 		const chain = (item, delimiter) => withDefault(chain1(item, delimiter), []);
 		const chain1 = (item, delimiter) => flatten(G.seqOf([item, G.many(G.seqOf([delimiter, item]))]));
-		const join = (items, delimiter) => items.length === 0 ? succeed([]) : flatten(join_(items, delimiter));
-		const join_ = ([first, ...rest], delimiter) => G.seqOf([first, G.seqOf(rest.map(item => G.seqOf([delimiter, item])))]);
+		const flatten = parser => map(parser, ([first, rest]) => [first, ...rest.map(([, item]) => item)]);
+		const join = (items, delimiter) => map(delimit(items, delimiter), array => array.filter((_, i) => i % 2 === 0));
+		const delimit = (items, delimiter) => G.seqOf(items.flatMap((item, i) => i === 0 ? [item] : [delimiter, item]));
 		const list = parser => chain(parser, spaces);
 		const tuple = parsers => join(parsers, spaces);
-		const withDefault = (parser, value) => map(G.optional(parser), option => O.withDefault(option, value));
 
 		const parse = (source, parser, errorFormatter = defaultErrorFormatter) => G.parse(source, parser, errorFormatter);
 
@@ -635,12 +635,12 @@
 			braces,
 			brackets,
 			endWith,
+			withDefault,
 			chain,
 			chain1,
 			join,
 			list,
 			tuple,
-			withDefault,
 			make,
 			parse,
 			defaultTokenErrorFormatter,
