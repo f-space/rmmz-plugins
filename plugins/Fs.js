@@ -325,6 +325,8 @@
 		const fail = error => () => R.err(error);
 		const andThen = (parser, fn) => context => R.andThen(parser(context), ([value, context]) => fn(value)(context));
 		const orElse = (parser, fn) => context => R.orElse(parser(context), error => fn(error)(context));
+		const either = (cond, then, else_) =>
+			context => R.match(cond(context), ([value, context]) => then(value)(context), error => else_(error)(context));
 		const map = (parser, fn) => context => R.map(parser(context), ([value, context]) => [fn(value), context]);
 		const mapError = (parser, fn) => context => R.mapErr(parser(context), fn);
 		const wrapError = (parser, fn) => context => mapError(parser, error => fn(context, error))(context);
@@ -332,7 +334,7 @@
 
 		const sequence = (a, b) => andThen(a, v1 => map(b, v2 => L.cons(v2, v1)));
 		const choice = (a, b) => orElse(a, e1 => mapError(b, e2 => L.cons(e2, e1)));
-		const loop = (parser, acc) => orElse(andThen(parser, value => loop(parser, L.cons(value, acc))), () => succeed(acc));
+		const loop = (parser, acc) => either(parser, value => loop(parser, L.cons(value, acc)), () => succeed(acc));
 		const toArray = list => L.toArray(L.reverse(list));
 
 		const seqOf = parsers => map(parsers.reduce(sequence, succeed(L.nil())), toArray);
@@ -411,6 +413,7 @@
 			fail,
 			andThen,
 			orElse,
+			either,
 			map,
 			mapError,
 			seqOf,

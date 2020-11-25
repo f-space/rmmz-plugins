@@ -172,6 +172,11 @@ declare namespace G {
 	const fail: <S, E>(error: E) => Parser<S, never, E>;
 	const andThen: <S, T, U, E, F>(parser: Parser<S, T, E>, fn: (value: T) => Parser<S, U, F>) => Parser<S, U, E | F>;
 	const orElse: <S, T, U, E, F>(parser: Parser<S, T, E>, fn: (error: E) => Parser<S, U, F>) => Parser<S, T | U, F>;
+	const either: <S, T, U, V, E, F, G>(
+		cond: Parser<S, T, E>,
+		then: (value: T) => Parser<S, U, F>,
+		else_: (error: E) => Parser<S, V, G>,
+	) => Parser<S, U, F> | Parser<S, V, G>;
 	const map: <S, T, U, E>(parser: Parser<S, T, E>, fn: (value: T) => U) => Parser<S, U, E>;
 	const mapError: <S, T, E, F>(parser: Parser<S, T, E>, fn: (error: E) => F) => Parser<S, T, F>;
 	const seqOf: <P extends readonly Parser<any, any, any>[]>(parsers: readonly [...P]) => SeqOf<P>;

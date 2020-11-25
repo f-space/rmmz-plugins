@@ -64,6 +64,12 @@ test("orElse", () => {
 	expect(parse("x", G.orElse(char("a"), error => G.fail(error)))).toMatchErr(tokenError(0, "a"));
 });
 
+test("either", () => {
+	expect(parse("ab", G.either(char("a"), () => char("b"), () => char("c")))).toEqualOk("b");
+	expect(parse("c", G.either(char("a"), () => char("b"), () => char("c")))).toEqualOk("c");
+	expect(parse("aa", G.either(char("a"), c => char(c), () => char("c")))).toEqualOk("a");
+});
+
 test("map", () => {
 	expect(parse("a", G.map(char("a"), c => c + "b"))).toEqualOk("ab");
 });
