@@ -48,3 +48,31 @@ test("mapErr", () => {
 	expect(R.unwrapErr(R.mapErr(R.err(-1), (e: number) => e * 10) as Err<number>)).toBe(-10);
 	expect(R.unwrap(R.mapErr(R.ok(42), (e: number) => e * 10) as Ok<number>)).toBe(42);
 });
+
+test("all", () => {
+	expect(R.all([])).toEqual(R.ok([]));
+	expect(R.all([R.err(0)])).toEqual(R.err(0));
+	expect(R.all([R.ok(0)])).toEqual(R.ok([0]));
+	expect(R.all([R.err(0), R.err(1)])).toEqual(R.err(0));
+	expect(R.all([R.err(0), R.ok(1)])).toEqual(R.err(0));
+	expect(R.all([R.ok(0), R.err(1)])).toEqual(R.err(1));
+	expect(R.all([R.ok(0), R.ok(1)])).toEqual(R.ok([0, 1]));
+	expect(R.all([R.err(0), R.err(1), R.err(2)])).toEqual(R.err(0));
+	expect(R.all([R.err(0), R.ok(1), R.err(2)])).toEqual(R.err(0));
+	expect(R.all([R.ok(0), R.err(1), R.ok(2)])).toEqual(R.err(1));
+	expect(R.all([R.ok(0), R.ok(1), R.ok(2)])).toEqual(R.ok([0, 1, 2]));
+});
+
+test("any", () => {
+	expect(R.any([])).toEqual(R.err([]));
+	expect(R.any([R.ok(0)])).toEqual(R.ok(0));
+	expect(R.any([R.err(0)])).toEqual(R.err([0]));
+	expect(R.any([R.ok(0), R.ok(1)])).toEqual(R.ok(0));
+	expect(R.any([R.ok(0), R.err(1)])).toEqual(R.ok(0));
+	expect(R.any([R.err(0), R.ok(1)])).toEqual(R.ok(1));
+	expect(R.any([R.err(0), R.err(1)])).toEqual(R.err([0, 1]));
+	expect(R.any([R.ok(0), R.ok(1), R.ok(2)])).toEqual(R.ok(0));
+	expect(R.any([R.ok(0), R.err(1), R.ok(2)])).toEqual(R.ok(0));
+	expect(R.any([R.err(0), R.ok(1), R.err(2)])).toEqual(R.ok(1));
+	expect(R.any([R.err(0), R.err(1), R.err(2)])).toEqual(R.err([0, 1, 2]));
+});

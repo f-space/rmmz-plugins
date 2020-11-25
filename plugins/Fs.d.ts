@@ -14,6 +14,11 @@ declare namespace O {
 	interface Some<T> { [SOME_SYMBOL]: T; }
 	interface None { [NONE_SYMBOL]: never; }
 
+	type Zip<A> = ZipRec<A, []>;
+	type ZipRec<A, T extends any[]> = A extends readonly [Option<infer U>, ...infer Rest]
+		? ZipRec<Rest, [...T, U]>
+		: Option<T>;
+
 	const some: <T>(value: T) => Some<T>;
 	const none: () => None;
 	const unwrap: <T>(option: Some<T>) => T;
@@ -22,8 +27,9 @@ declare namespace O {
 	const andThen: <T, U>(option: Option<T>, fn: (value: T) => Option<U>) => Option<U>;
 	const orElse: <T>(option: Option<T>, fn: () => Option<T>) => Option<T>;
 	const match: <T, P, Q>(option: Option<T>, onSome: (value: T) => P, onNone: () => Q) => P | Q;
-	const map: <T, U>(option: Option<T>, fn: (value: T) => U) => Option<U>;
 	const withDefault: <T>(option: Option<T>, value: T) => T;
+	const map: <T, U>(option: Option<T>, fn: (value: T) => U) => Option<U>;
+	const zip: <A extends readonly Option<any>[]>(options: readonly [...A]) => Zip<A>;
 }
 
 type R = typeof R;
@@ -31,6 +37,15 @@ declare namespace R {
 	type Result<T, E> = Ok<T> | Err<E>;
 	interface Ok<T> { [OK_SYMBOL]: T; }
 	interface Err<E> { [ERR_SYMBOL]: E; }
+
+	type All<A> = AllRec<A, [], never>;
+	type AllRec<A, T extends any[], E> = A extends readonly [Result<infer U, infer F>, ...infer Rest]
+		? AllRec<Rest, [...T, U], E | F>
+		: Result<T, E>;
+	type Any<A> = AnyRec<A, never, []>;
+	type AnyRec<A, T, E extends any[]> = A extends readonly [Result<infer U, infer F>, ...infer Rest]
+		? AnyRec<Rest, T | U, [...E, F]>
+		: Result<T, E>;
 
 	const ok: <T>(value: T) => Ok<T>;
 	const err: <E>(error: E) => Err<E>;
@@ -43,6 +58,8 @@ declare namespace R {
 	const match: <T, E, P, Q>(result: Result<T, E>, onOk: (value: T) => P, onErr: (error: E) => Q) => P | Q;
 	const map: <T, U, E>(result: Result<T, E>, fn: (value: T) => U) => Result<U, E>;
 	const mapErr: <T, E, F>(result: Result<T, E>, fn: (error: E) => F) => Result<T, F>;
+	const all: <A extends readonly Result<any, any>[]>(results: readonly [...A]) => All<A>;
+	const any: <A extends readonly Result<any, any>[]>(results: readonly [...A]) => Any<A>;
 }
 
 type L = typeof L;

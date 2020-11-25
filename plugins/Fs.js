@@ -99,6 +99,14 @@
 		return { make, $get, $set };
 	})();
 
+	const Monad = (unit, bind) => {
+		const map = (monad, fn) => bind(monad, value => unit(fn(value)));
+		const zip = monads => zipRec(monads, []);
+		const zipRec = (ms, xs) => ms.length !== 0 ? bind(ms[0], x => zipRec(ms.slice(1), [...xs, x])) : unit(xs);
+
+		return { map, zip };
+	};
+
 	const O = (() => {
 		const some = value => ({ value });
 		const none = () => undefined;
@@ -108,10 +116,10 @@
 		const andThen = (option, fn) => isSome(option) ? fn(unwrap(option)) : option;
 		const orElse = (option, fn) => isSome(option) ? option : fn();
 		const match = (option, onSome, onNone) => isSome(option) ? onSome(unwrap(option)) : onNone();
-		const map = (option, fn) => andThen(option, value => some(fn(value)));
 		const withDefault = (option, value) => isSome(option) ? unwrap(option) : value;
+		const { map, zip } = Monad(some, andThen);
 
-		return { some, none, unwrap, isSome, isNone, andThen, orElse, match, map, withDefault };
+		return { some, none, unwrap, isSome, isNone, andThen, orElse, match, withDefault, map, zip };
 	})();
 
 	const R = (() => {
@@ -124,10 +132,10 @@
 		const andThen = (result, fn) => isOk(result) ? fn(unwrap(result)) : result;
 		const orElse = (result, fn) => isOk(result) ? result : fn(unwrapErr(result));
 		const match = (result, onOk, onErr) => isOk(result) ? onOk(unwrap(result)) : onErr(unwrapErr(result));
-		const map = (result, fn) => andThen(result, value => ok(fn(value)));
-		const mapErr = (result, fn) => orElse(result, error => err(fn(error)));
+		const { map: map, zip: all } = Monad(ok, andThen);
+		const { map: mapErr, zip: any } = Monad(err, orElse);
 
-		return { ok, err, unwrap, unwrapErr, isOk, isErr, andThen, orElse, match, map, mapErr };
+		return { ok, err, unwrap, unwrapErr, isOk, isErr, andThen, orElse, match, map, mapErr, all, any };
 	})();
 
 	const L = (() => {

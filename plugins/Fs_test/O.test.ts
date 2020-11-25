@@ -33,12 +33,26 @@ test("match", () => {
 	expect(O.match(O.none(), x => x, () => 0)).toBe(0);
 });
 
+test("withDefault", () => {
+	expect(O.withDefault(O.some(42), 0)).toBe(42);
+	expect(O.withDefault(O.none(), 0)).toBe(0);
+});
+
 test("map", () => {
 	expect(O.unwrap(O.map(O.some(42), (x: number) => x * 10) as Some<number>)).toBe(420);
 	expect(O.isNone(O.map(O.none(), (x: number) => x * 10))).toBe(true);
 });
 
-test("withDefault", () => {
-	expect(O.withDefault(O.some(42), 0)).toBe(42);
-	expect(O.withDefault(O.none(), 0)).toBe(0);
+test("zip", () => {
+	expect(O.zip([])).toEqual(O.some([]));
+	expect(O.zip([O.none()])).toEqual(O.none());
+	expect(O.zip([O.some(0)])).toEqual(O.some([0]));
+	expect(O.zip([O.none(), O.none()])).toEqual(O.none());
+	expect(O.zip([O.none(), O.some(1)])).toEqual(O.none());
+	expect(O.zip([O.some(0), O.none()])).toEqual(O.none());
+	expect(O.zip([O.some(0), O.some(1)])).toEqual(O.some([0, 1]));
+	expect(O.zip([O.none(), O.none(), O.none()])).toEqual(O.none());
+	expect(O.zip([O.none(), O.some(1), O.none()])).toEqual(O.none());
+	expect(O.zip([O.some(0), O.none(), O.some(2)])).toEqual(O.none());
+	expect(O.zip([O.some(0), O.some(1), O.some(2)])).toEqual(O.some([0, 1, 2]));
 });
