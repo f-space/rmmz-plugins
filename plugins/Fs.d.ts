@@ -181,6 +181,7 @@ declare namespace G {
 	const many1: <S, P, E>(parser: Parser<S, P, E>) => Parser<S, P[], E>;
 	const and: <S, T, E, F>(pred: Parser<S, unknown, F>, parser: Parser<S, T, E>) => Parser<S, T, E | AndError<S, F>>;
 	const not: <S, T, U, E>(pred: Parser<S, U, unknown>, parser: Parser<S, T, E>) => Parser<S, T, E | NotError<S, U>>;
+	const ref: <S, T, U>(getter: () => Parser<S, T, U>) => Parser<S, T, U>;
 	const validate: <S, T, U, E, V>(parser: Parser<S, T, E>, validator: Validator<T, U, V>)
 		=> Parser<S, U, E | ValidationError<S, V>>;
 	const memo: <S, T, E>(parser: Parser<S, T, E>) => Parser<S, T, E>;

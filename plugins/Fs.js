@@ -342,6 +342,7 @@
 		const many1 = parser => map(andThen(parser, value => loop(parser, L.singleton(value))), toArray);
 		const and = (pred, parser) => context => R.match(pred(context), () => parser(context), error => R.err(andError(context, error)));
 		const not = (pred, parser) => context => R.match(pred(context), ([value]) => R.err(notError(context, value)), () => parser(context));
+		const ref = getter => context => getter()(context);
 		const validate = (parser, validator) => wrapError(andThen(parser, try_(validator)), validationError);
 
 		const memo = parser => context => {
@@ -419,6 +420,7 @@
 			many1,
 			and,
 			not,
+			ref,
 			validate,
 			memo,
 			make,

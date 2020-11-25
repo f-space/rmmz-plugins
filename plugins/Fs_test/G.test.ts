@@ -111,6 +111,11 @@ test("not", () => {
 	expect(parse("a", G.not(char("a"), char("a")))).toMatchErr(notError(0, "a"));
 });
 
+test("ref", () => {
+	expect(parse("a", G.ref(() => char("a")))).toEqualOk("a");
+	expect(parse("b", G.ref(() => char("a")))).toMatchErr(tokenError(0, "a"));
+});
+
 test("validate", () => {
 	const validator = (c: string) => c === "a" ? R.ok(c) : R.err("not-a");
 	expect(parse("a", G.validate(char("a"), validator))).toEqualOk("a");
