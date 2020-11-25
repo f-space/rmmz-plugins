@@ -291,7 +291,7 @@ declare namespace N {
 	const parens: <T, E>(parser: Parser<T, E>) => Parser<T, E | TokenError<SymbolError | RegexpError>>;
 	const braces: <T, E>(parser: Parser<T, E>) => Parser<T, E | TokenError<SymbolError | RegexpError>>;
 	const brackets: <T, E>(parser: Parser<T, E>) => Parser<T, E | TokenError<SymbolError | RegexpError>>;
-	const iff: <T, E>(parser: Parser<T, E>) => Parser<T, E | EofError>;
+	const endWith: <T, E>(parser: Parser<T, E>) => Parser<T, E | EofError>;
 	const chain: <T>(item: Parser<T, unknown>, delimiter: Parser<unknown, unknown>) => Parser<T[], never>;
 	const chain1: <T, E>(item: Parser<T, E>, delimiter: Parser<unknown, unknown>) => Parser<T[], E>;
 	const join: <P extends readonly Parser<any, any>[], F>(items: readonly [...P], delimiter: Parser<unknown, F>)

@@ -584,7 +584,7 @@
 		const parens = parser => group(parser, symbol("("), symbol(")"));
 		const braces = parser => group(parser, symbol("{"), symbol("}"));
 		const brackets = parser => group(parser, symbol("["), symbol("]"));
-		const iff = parser => G.andThen(parser, value => G.map(G.eof(), () => value));
+		const endWith = parser => G.andThen(parser, value => G.map(G.eof(), () => value));
 
 		const flatten = parser => map(parser, ([first, rest]) => [first, ...rest.map(([, item]) => item)]);
 		const chain = (item, delimiter) => withDefault(chain1(item, delimiter), []);
@@ -634,7 +634,7 @@
 			parens,
 			braces,
 			brackets,
-			iff,
+			endWith,
 			chain,
 			chain1,
 			join,
@@ -672,7 +672,7 @@
 				return R.err(notationError('attr', name, v));
 			}
 		};
-		const attrN = (name, parser) => attr(name, N.make(N.iff(N.margin(parser))));
+		const attrN = (name, parser) => attr(name, N.make(N.endWith(N.margin(parser))));
 
 		const succeed = value => () => R.ok(O.some(value));
 		const miss = () => () => R.ok(O.none());

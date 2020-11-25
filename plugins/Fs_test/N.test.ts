@@ -95,9 +95,9 @@ test("brackets", () => {
 	expect(parse("42", N.brackets(N.integer))).toMatchErr(tokenError(0, "["));
 });
 
-test("iff", () => {
-	expect(parse("42", N.iff(N.integer))).toEqualOk(42);
-	expect(parse("42;", N.iff(N.integer))).toMatchErr(eofError(2));
+test("endWith", () => {
+	expect(parse("42", N.endWith(N.integer))).toEqualOk(42);
+	expect(parse("42;", N.endWith(N.integer))).toMatchErr(eofError(2));
 });
 
 test("chain", () => {
