@@ -99,9 +99,8 @@ declare namespace G {
 		result: ReturnType<Parser<S, T, E>>;
 	};
 
-	type Parser<S, T, E> = (context: Context<S>) => R.Result<Next<S, T>, E>;
+	type Parser<S, T, E> = (context: Context<S>) => R.Result<[T, Context<S>], E>;
 	type BuiltParser<S, T, E> = (source: S) => R.Result<T, E>;
-	type Next<S, T> = [T, Context<S>];
 
 	type TokenError<S, C> = {
 		type: 'token';
@@ -150,7 +149,7 @@ declare namespace G {
 	const eof: <S>() => Parser<S, null, EofError<S>>;
 	const succeed: <S, T>(value: T) => Parser<S, T, never>;
 	const fail: <S, E>(error: E) => Parser<S, never, E>;
-	const andThen: <S, T, U, E, F>(parser: Parser<S, T, E>, fn: (next: Next<S, T>) => Parser<S, U, F>) => Parser<S, U, E | F>;
+	const andThen: <S, T, U, E, F>(parser: Parser<S, T, E>, fn: (value: T) => Parser<S, U, F>) => Parser<S, U, E | F>;
 	const orElse: <S, T, U, E, F>(parser: Parser<S, T, E>, fn: (error: E) => Parser<S, U, F>) => Parser<S, T | U, F>;
 	const map: <S, T, U, E>(parser: Parser<S, T, E>, fn: (value: T) => U) => Parser<S, U, E>;
 	const mapError: <S, T, E, F>(parser: Parser<S, T, E>, fn: (error: E) => F) => Parser<S, T, F>;
