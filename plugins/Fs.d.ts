@@ -5,12 +5,8 @@ declare const ERR_SYMBOL: unique symbol;
 declare const NIL_SYMBOL: unique symbol;
 declare const CONS_SYMBOL: unique symbol;
 
-type Zero<T> = T extends never ? never : 0;
-
-// type IncludesNever<T extends any[]> =
-// 	T extends readonly [infer F, ...infer R] ? (F extends never ? true : IncludesNever<R>) : false;
 type IncludesNever<T extends any[]> =
-	T extends readonly [infer F, ...infer R] ? (F extends never ? true : { 0: IncludesNever<R>; }[Zero<T>]) : false;
+	T extends readonly [infer F, ...infer R] ? (F extends never ? true : IncludesNever<R>) : false;
 
 type O = typeof O;
 declare namespace O {
@@ -140,18 +136,12 @@ declare namespace G {
 
 	type AcceptToken<S, T, C> = (source: S, position: number) => R.Result<[T, number], C>;
 	type SeqOf<P> = SeqOfRec<P, unknown, [], never>;
-	// type SeqOfRec<P, S, T extends any[], E> = P extends readonly [Parser<infer R, infer U, infer F>, ...infer Rest]
-	// 	? SeqOfRec<Rest, S & R, [...T, U], E | F>
-	// 	: Parser<S, IncludesNever<T> extends true ? never : T, E>;
 	type SeqOfRec<P, S, T extends any[], E> = P extends readonly [Parser<infer R, infer U, infer F>, ...infer Rest]
-		? { 0: SeqOfRec<Rest, S & R, [...T, U], E | F>; }[Zero<P>]
+		? SeqOfRec<Rest, S & R, [...T, U], E | F>
 		: Parser<S, IncludesNever<T> extends true ? never : T, E>;
 	type OneOf<P> = OneOfRec<P, unknown, never, []>;
-	// type OneOfRec<P, S, T, E extends any[]> = P extends readonly [Parser<infer R, infer U, infer F>, ...infer Rest]
-	// 	? OneOfRec<Rest, S & R, T | U, [...E, F]>
-	// 	: Parser<S, T, IncludesNever<E> extends true ? never : PathError<S, E>>;
 	type OneOfRec<P, S, T, E extends any[]> = P extends readonly [Parser<infer R, infer U, infer F>, ...infer Rest]
-		? { 0: OneOfRec<Rest, S & R, T | U, [...E, F]>; }[Zero<P>]
+		? OneOfRec<Rest, S & R, T | U, [...E, F]>
 		: Parser<S, T, IncludesNever<E> extends true ? never : PathError<S, E>>;
 	type Validator<T, U, V> = (value: T) => R.Result<U, V>;
 	type ErrorFormatter<E> = (error: E) => string;
@@ -206,11 +196,8 @@ declare namespace P {
 
 	type Validator<T, U, V> = (value: T) => R.Result<U, V>;
 	type Struct<P> = StructRec<P, {}, never>;
-	// type StructRec<P, T, E> = P extends [EntryParser<infer K, infer U, infer F>, ...infer Rest]
-	// 	? StructRec<Rest, T & Record<K, U>, E | F>
-	// 	: Parser<T, E | JsonError | FormatError<"struct">>;
 	type StructRec<P, T, E> = P extends [EntryParser<infer K, infer U, infer F>, ...infer Rest]
-		? { 0: StructRec<Rest, T & Record<K, U>, E | F>; }[Zero<P>]
+		? StructRec<Rest, T & Record<K, U>, E | F>
 		: Parser<T, E | JsonError | FormatError<"struct">>;
 	type Archetype = Parser<any, any> | readonly [Archetype] | { [key: string]: Archetype; };
 	type Make<A> = Parser<MakeValue<A>, MakeError<A>>;
@@ -218,14 +205,10 @@ declare namespace P {
 		A extends Parser<infer T, any> ? T :
 		A extends readonly [Archetype] ? MakeValue<A[0]>[] :
 		A extends { [key: string]: Archetype; } ? { [K in keyof A]: MakeValue<A[K]> } : never;
-	// type MakeError<A> =
-	// 	A extends Parser<any, infer E> ? E :
-	// 	A extends readonly [Archetype] ? MakeError<A[0]> | JsonError | FormatError<"array"> :
-	// 	A extends { [key: string]: Archetype; } ? MakeError<A[keyof A]> | JsonError | FormatError<"struct"> : never;
 	type MakeError<A> =
 		A extends Parser<any, infer E> ? E :
-		A extends readonly [Archetype] ? { 0: MakeError<A[0]> | JsonError | FormatError<"array">; }[Zero<A>] :
-		A extends { [key: string]: Archetype; } ? { 0: MakeError<A[keyof A]> | JsonError | FormatError<"struct">; }[Zero<A>] : never;
+		A extends readonly [Archetype] ? MakeError<A[0]> | JsonError | FormatError<"array"> :
+		A extends { [key: string]: Archetype; } ? MakeError<A[keyof A]> | JsonError | FormatError<"struct"> : never;
 	type ErrorFormatter<E> = (error: E) => string;
 
 	const succeed: <T>(value: T) => Parser<T, never>;
@@ -346,25 +329,18 @@ declare namespace M {
 
 	type AttrParser<T, C> = (source: string) => R.Result<T, C>;
 	type OneOf<P> = OneOfRec<P, never, never>;
-	// type OneOfRec<P, T, E> = P extends readonly [Parser<infer U, infer F>, ...infer Rest]
-	// 	? OneOfRec<Rest, T | U, E | F>
-	// 	: Parser<T, E>;
 	type OneOfRec<P, T, E> = P extends readonly [Parser<infer U, infer F>, ...infer Rest]
-		? { 0: OneOfRec<Rest, T | U, E | F>; }[Zero<P>]
+		? OneOfRec<Rest, T | U, E | F>
 		: Parser<T, E>;
 	type Archetype = Parser<any, any> | readonly [Archetype, ...Archetype[]] | { [key: string]: Archetype; };
 	type Make<A> = Parser<MakeValue<A>, MakeError<A>>;
 	type MakeValue<A> =
 		A extends Parser<infer T, any> ? T :
 		A extends object ? { [K in keyof A]: MakeValue<A[K]> } : never;
-	// type MakeError<A> =
-	// 	A extends Parser<any, infer E> ? E :
-	// 	A extends readonly [infer F, ...infer R] ? MakeError<F> | MakeError<R> :
-	// 	A extends { [key: string]: Archetype; } ? MakeError<A[keyof A]> : never;
 	type MakeError<A> =
 		A extends Parser<any, infer E> ? E :
-		A extends readonly [infer F, ...infer R] ? { 0: MakeError<F> | MakeError<R>; }[Zero<A>] :
-		A extends { [key: string]: Archetype; } ? { 0: MakeError<A[keyof A]>; }[Zero<A>] : never;
+		A extends readonly [infer F, ...infer R] ? MakeError<F> | MakeError<R> :
+		A extends { [key: string]: Archetype; } ? MakeError<A[keyof A]> : never;
 	type Meta<T> = (meta: Metadata) => T;
 	type ErrorFormatter<E> = (error: E) => string;
 
