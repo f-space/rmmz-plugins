@@ -431,6 +431,387 @@
 		};
 	})();
 
+	const E = (() => {
+		const tokenize = (() => {
+			const RE_SPACING = /^[ \r\n]*/;
+			const RE_IDENTIFIER = /^[a-z$][a-z0-9$_]*/i;
+			const RE_NUMBER = /^(?:\d+(?:\.\d*)?|\.\d+)(?:e[+\-]?\d+)?/i;
+			const RE_SYMBOL = /^(?:[%()+,\-./:?\[\]]|!(?:==)?|&&|\*\*?|<=?|===|>=?|\|\|)/;
+			const RE_UNKNOWN = /^(?:[a-z0-9$_]+|[\p{L}\p{N}\p{Pc}\p{M}\p{Cf}]+|[\p{P}\p{S}]+|[^ \r\n]+)/iu;
+
+			const make = (type, start, end) => ({ type, start, end });
+
+			const match = (type, re, fn) => G.token(type, (source, position) => {
+				const match = source.slice(position).match(re);
+				return match !== null ? R.ok(fn(match[0], position)) : R.err(undefined);
+			});
+			const skip = (type, re) => match(type, re, (token, start) => [undefined, start + token.length]);
+			const symbol = (type, re) => match(type, re, (token, start) => next(token, start, start + token.length));
+			const word = (type, re) => match(type, re, (token, start) => next(type, start, start + token.length));
+			const next = (type, start, end) => [make(type, start, end), end];
+
+			const spacing = skip('spacing', RE_SPACING);
+			const token = G.oneOf([
+				word('identifier', RE_IDENTIFIER),
+				word('number', RE_NUMBER),
+				symbol('symbol', RE_SYMBOL),
+				word('unknown', RE_UNKNOWN),
+			]);
+			const tokenList = G.many(G.andThen(spacing, () => token));
+			const lexer = G.make(tokenList, { noCache: true });
+
+			return source => R.unwrap(lexer(source));
+		})();
+
+		const parse = (() => {
+			const numberNode = value => ({ type: 'number', value });
+			const identifierNode = name => ({ type: 'identifier', name });
+			const memberAccessNode = (object, property) => ({ type: 'member-access', object, property });
+			const elementAccessNode = (array, index) => ({ type: 'element-access', array, index });
+			const functionCallNode = (callee, args) => ({ type: 'function-call', callee, args });
+			const unaryOpNode = (operator, expr) => ({ type: 'unary-operator', operator, expr });
+			const binaryOpNode = (operator, lhs, rhs) => ({ type: 'binary-operator', operator, lhs, rhs });
+			const condOpNode = (if_, then, else_) => ({ type: 'conditional-operator', if: if_, then, else: else_ });
+
+			const token = type => G.token(type, (source, position) => {
+				const token = position < source.length ? source[position] : undefined;
+				return token !== undefined && token.type === type ? R.ok([token, position + 1]) : R.err(token ?? null);
+			});
+			const fail = type => G.token(type, (source, position) => {
+				return R.err(position < source.length ? source[position] : null);
+			});
+
+			const number = G.map(token("number"), value => numberNode(value));
+
+			const identifier = G.map(token("identifier"), name => identifierNode(name));
+
+			const group = (term, expr) => {
+				const succ = G.andThen(expr, node => G.map(token(")"), () => node));
+				return G.either(token("("), () => succ, () => term);
+			};
+
+			const postfixOp = (term, expr) => {
+				const cont = G.ref(() => rec);
+				const cases = [
+					memberAccess(cont),
+					elementAccess(expr, cont),
+					functionCall(expr, cont),
+				];
+				const rec = cases.reduceRight((next, case_) => case_(next), G.succeed(node => node));
+				return G.andThen(term, node => G.map(rec, ctor => ctor(node)));
+			};
+
+			const memberAccess = cont => next => {
+				const succ = G.map(
+					G.seqOf([identifier, cont]),
+					([property, ctor]) => object => ctor(memberAccessNode(object, property)),
+				);
+				return G.either(token("."), () => succ, () => next);
+			};
+
+			const elementAccess = (expr, cont) => next => {
+				const succ = G.map(
+					G.seqOf([expr, token("]"), cont]),
+					([index, , ctor]) => array => ctor(elementAccessNode(array, index)),
+				);
+				return G.either(token("["), () => succ, () => next);
+			};
+
+			const functionCall = (expr, cont) => next => {
+				const succ = G.map(
+					G.seqOf([functionArgs(expr), token(")"), cont]),
+					([args, , ctor]) => callee => ctor(functionCallNode(callee, args)),
+				);
+				return G.either(token("("), () => succ, () => next);
+			};
+			const functionArgs = expr => {
+				const rec = G.andThen(expr, node => G.either(
+					token(","),
+					() => G.orElse(G.and(token(")"), G.succeed(L.singleton(node))), () => G.map(rec, rest => L.cons(node, rest))),
+					() => G.succeed(L.singleton(node)),
+				));
+				return G.orElse(G.and(G.orElse(token(")"), () => G.eof()), G.succeed([])), () => G.map(rec, L.toArray));
+			};
+
+			const unaryOp = (term, op) => {
+				const rec = G.either(
+					op,
+					operator => G.map(rec, expr => unaryOpNode(operator, expr)),
+					() => term,
+				);
+				return rec;
+			};
+
+			const binaryOpL = (term, op) => G.map(binaryOpList(term, op), list => L.reduce(list, binaryOpReducerL, [])[0]);
+			const binaryOpReducerL = (xs, x) => xs.length == 2 ? [binaryOpNode(xs[1], xs[0], x)] : [...xs, x];
+			const binaryOpR = (term, op) => G.map(binaryOpList(term, op), list => L.reduceRight(list, binaryOpReducerR, [])[0]);
+			const binaryOpReducerR = (xs, x) => xs.length == 2 ? [binaryOpNode(xs[1], x, xs[0])] : [...xs, x];
+			const binaryOpList = (term, op) => {
+				const rec = G.andThen(term, lhs => G.either(
+					op,
+					operator => G.map(rec, rhs => L.cons(lhs, L.cons(operator, rhs))),
+					() => G.succeed(L.singleton(lhs)),
+				));
+				return rec;
+			};
+
+			const condOp = (term, expr) => {
+				const succ = G.seqOf([expr, token(":"), G.ref(() => rec)]);
+				const rec = G.andThen(term, if_ => G.either(
+					token("?"),
+					() => G.map(succ, ([then, , else_]) => condOpNode(if_, then, else_)),
+					() => G.succeed(if_),
+				));
+				return rec;
+			};
+
+			const expression = G.ref(() => exprL0);
+			const exprL11 = G.memo(G.orElse(G.orElse(identifier, () => number), () => fail('expression')));
+			const exprL10 = G.memo(group(exprL11, expression));
+			const exprL9 = G.memo(postfixOp(exprL10, expression));
+			const exprL8 = G.memo(unaryOp(exprL9, G.oneOf(["+", "-", "!"].map(token))));
+			const exprL7 = G.memo(binaryOpR(exprL8, token("**")));
+			const exprL6 = G.memo(binaryOpL(exprL7, G.oneOf(["*", "/", "%"].map(token))));
+			const exprL5 = G.memo(binaryOpL(exprL6, G.oneOf(["+", "-"].map(token))));
+			const exprL4 = G.memo(binaryOpL(exprL5, G.oneOf(["<=", ">=", "<", ">"].map(token))));
+			const exprL3 = G.memo(binaryOpL(exprL4, G.oneOf(["===", "!=="].map(token))));
+			const exprL2 = G.memo(binaryOpL(exprL3, token("&&")));
+			const exprL1 = G.memo(binaryOpL(exprL2, token("||")));
+			const exprL0 = G.memo(condOp(exprL1, expression));
+
+			const endWith = parser => G.andThen(parser, value => G.map(G.eof(), () => value));
+
+			return G.make(endWith(expression));
+		})();
+
+		const build = (() => {
+			const MEMBER_BLOCK_LIST = ["prototype", "constructor"];
+			const VALUE_BLOCK_LIST = new Map([
+				[globalThis, "global object"],
+				[Object, "Object"],
+				[Object.prototype, "Object.prototype"],
+				[Function, "Function"],
+				[Function.prototype, "Function.prototype"],
+			]);
+
+			const referenceError = name => ({ type: 'reference', name });
+			const propertyError = property => ({ type: 'property', property });
+			const rangeError = index => ({ type: 'range', index });
+			const typeError = (expected, actual) => ({ type: 'type', expected, actual });
+			const securityError = target => ({ type: 'security', target });
+
+			const builtinValue = name => Math.hasOwnProperty(name) ? O.some(Math[name]) : O.none();
+			const blockedMember = name => MEMBER_BLOCK_LIST.includes(name) ? O.some(`${name} property`) : O.none();
+			const blockedValue = value => VALUE_BLOCK_LIST.has(value) ? O.some(VALUE_BLOCK_LIST.get(value)) : O.none();
+			const restore = (source, token) => source.slice(token.start, token.end);
+
+			const type = (name, fn) => input => R.andThen(input, value => fn(value) ? R.ok(value) : R.err(typeError(name, value)));
+			const isNumber = type('number', value => typeof value === 'number');
+			const isBoolean = type('boolean', value => typeof value === 'boolean');
+			const isFunction = type('function', value => typeof value === 'function');
+			const isObject = type('object', value => (typeof value === 'object' && value !== null) || typeof value === 'function');
+			const isArray = type('array', value => Array.isArray(value));
+
+			const bind1 = fn => a => R.andThen(a, a => fn(a));
+			const bind2 = fn => (a, b) => R.andThen(R.all([a, b]), ([a, b]) => fn(a, b));
+			const lift1 = fn => a => R.map(a, a => fn(a));
+			const lift2 = fn => (a, b) => R.map(R.all([a, b]), ([a, b]) => fn(a, b));
+			const lift3 = fn => (a, b, c) => R.map(R.all([a, b, c]), ([a, b, c]) => fn(a, b, c));
+			const member = bind2((object, property) => property in object ? R.ok(object[property]) : R.err(propertyError(property)));
+			const element = bind2((array, index) => index >= 0 && index < array.length ? R.ok(array[index]) : R.err(rangeError(index)));
+			const call = lift2((fn, args) => fn(...args));
+			const callMember = lift3((fn, this_, args) => fn.apply(this_, args));
+			const unary = (fn, a) => lift1(fn)(a);
+			const binary = (fn, a, b) => lift2(fn)(a, b);
+			const secure = bind1(value => O.match(blockedValue(value), target => R.err(securityError(target)), () => R.ok(value)));
+
+			const root = (source, node) => {
+				const evalExpr = expression(source, node);
+				return env => isNumber(evalExpr(env));
+			};
+
+			const expression = (source, node) => {
+				const { type } = node;
+				switch (type) {
+					case 'number': return number(source, node);
+					case 'identifier': return identifier(source, node);
+					case 'member-access': return memberAccess(source, node);
+					case 'element-access': return elementAccess(source, node);
+					case 'function-call': return functionCall(source, node);
+					case 'unary-operator': return unaryOp(source, node);
+					case 'binary-operator': return binaryOp(source, node);
+					case 'conditional-operator': return condOp(source, node);
+					default: throw new Error(`Invalid AST node type: ${type}`);
+				}
+			};
+
+			const number = (source, node) => {
+				const value = Number.parseFloat(restore(source, node.value));
+				return () => R.ok(value);
+			};
+
+			const identifier = (source, node) => {
+				const name = restore(source, node.name);
+				return O.match(
+					builtinValue(name),
+					value => () => R.ok(value),
+					() => env => env.hasOwnProperty(name) ? R.ok(env[name]) : R.err(referenceError(name)),
+				);
+			};
+
+			const memberAccess = (source, node) => {
+				const { evalThis, evalExpr } = memberAccessCore(source, node);
+				return env => evalExpr(evalThis(env), env);
+			};
+			const memberAccessCore = (source, node) => {
+				const evalObject = expression(source, node.object);
+				const property = restore(source, node.property.name);
+				return {
+					evalThis: evalObject,
+					evalExpr: O.match(
+						blockedMember(property),
+						target => () => R.err(securityError(target)),
+						() => this_ => secure(member(isObject(this_), R.ok(property))),
+					),
+				};
+			};
+
+			const elementAccess = (source, node) => {
+				const { evalThis, evalExpr } = elementAccessCore(source, node);
+				return env => evalExpr(evalThis(env), env);
+			};
+			const elementAccessCore = (source, node) => {
+				const evalArray = expression(source, node.array);
+				const evalIndex = expression(source, node.index);
+				return {
+					evalThis: evalArray,
+					evalExpr: (this_, env) => secure(element(isArray(this_), isNumber(evalIndex(env)))),
+				};
+			};
+
+			const functionCall = (source, node) => {
+				const callee = functionCallee(source, node.callee);
+				const evalArgs = functionArgs(source, node.args);
+				return callee.isStatic
+					? functionStaticCall(callee.eval, evalArgs)
+					: functionMemberCall(callee.evalThis, callee.evalExpr, evalArgs);
+			};
+			const functionCallee = (source, node) => {
+				switch (node.type) {
+					case 'member-access': return { isStatic: false, ...memberAccessCore(source, node) };
+					case 'element-access': return { isStatic: false, ...elementAccessCore(source, node) };
+					default: return { isStatic: true, eval: expression(source, node) };
+				}
+			};
+			const functionArgs = (source, nodes) => {
+				const evalList = nodes.map(node => expression(source, node));
+				return env => R.all(evalList.map(evalArg => evalArg(env)));
+			};
+			const functionStaticCall = (evalCallee, evalArgs) => {
+				return env => secure(call(isFunction(evalCallee(env)), evalArgs(env)));
+			};
+			const functionMemberCall = (evalThis, evalExpr, evalArgs) => {
+				return env => {
+					const this_ = evalThis(env);
+					return secure(callMember(isFunction(evalExpr(this_, env)), this_, evalArgs(env)));
+				};
+			};
+
+			const unaryOp = (source, node) => {
+				const operator = restore(source, node.operator);
+				const evalExpr = expression(source, node.expr);
+				switch (operator) {
+					case '+': return env => unary(a => +a, isNumber(evalExpr(env)));
+					case '-': return env => unary(a => -a, isNumber(evalExpr(env)));
+					case '!': return env => unary(a => !a, isBoolean(evalExpr(env)));
+					default: throw new Error(`Unsupported unary operator: ${operator}`);
+				}
+			};
+
+			const binaryOp = (source, node) => {
+				const operator = restore(source, node.operator);
+				const evalL = expression(source, node.lhs);
+				const evalR = expression(source, node.rhs);
+				switch (operator) {
+					case '+': return env => binary((a, b) => a + b, isNumber(evalL(env)), isNumber(evalR(env)));
+					case '-': return env => binary((a, b) => a - b, isNumber(evalL(env)), isNumber(evalR(env)));
+					case '*': return env => binary((a, b) => a * b, isNumber(evalL(env)), isNumber(evalR(env)));
+					case '/': return env => binary((a, b) => a / b, isNumber(evalL(env)), isNumber(evalR(env)));
+					case '%': return env => binary((a, b) => a % b, isNumber(evalL(env)), isNumber(evalR(env)));
+					case '**': return env => binary((a, b) => a ** b, isNumber(evalL(env)), isNumber(evalR(env)));
+					case '===': return env => binary((a, b) => a === b, isNumber(evalL(env)), isNumber(evalR(env)));
+					case '!==': return env => binary((a, b) => a !== b, isNumber(evalL(env)), isNumber(evalR(env)));
+					case '<=': return env => binary((a, b) => a <= b, isNumber(evalL(env)), isNumber(evalR(env)));
+					case '>=': return env => binary((a, b) => a >= b, isNumber(evalL(env)), isNumber(evalR(env)));
+					case '<': return env => binary((a, b) => a < b, isNumber(evalL(env)), isNumber(evalR(env)));
+					case '>': return env => binary((a, b) => a > b, isNumber(evalL(env)), isNumber(evalR(env)));
+					case '&&': return env => R.andThen(isBoolean(evalL(env)), value => value ? isBoolean(evalR(env)) : R.ok(false));
+					case '||': return env => R.andThen(isBoolean(evalL(env)), value => value ? R.ok(true) : isBoolean(evalR(env)));
+					default: throw new Error(`Unsupported binary operator: ${operator}`);
+				}
+			};
+
+			const condOp = (source, node) => {
+				const { if: if_, then, else: else_ } = node;
+				const evalIf = expression(source, if_);
+				const evalThen = expression(source, then);
+				const evalElse = expression(source, else_);
+				return env => R.andThen(isBoolean(evalIf(env)), value => value ? evalThen(env) : evalElse(env));
+			};
+
+			return root;
+		})();
+
+		const compile = source => {
+			return R.match(
+				parse(tokenize(source)),
+				ast => R.ok(build(source, ast)),
+				error => R.err({ source, error }),
+			);
+		};
+
+		const expect = (result, errorFormatter = defaultParseErrorFormatter) =>
+			R.expect(result, ({ source, error }) => errorFormatter(source, error));
+
+		const run = (evaluator, args, errorFormatter = defaultRuntimeErrorFormatter) =>
+			R.expect(evaluator(args), errorFormatter);
+
+		const interpret = (source, args, parseErrorFormatter, runtimeErrorFormatter) =>
+			run(expect(compile(source), parseErrorFormatter), args, runtimeErrorFormatter);
+
+		const defaultParseErrorFormatter = (source, error) => {
+			const restore = (source, token) => source.slice(token.start, token.end);
+			const formatTokenError = (source, error) => {
+				const { name, cause } = error;
+				const token = cause !== null ? `"${restore(source, cause)}"` : "no more tokens";
+				return `'${name}' expected, but ${token} found.`;
+			};
+			const formatEofError = (source, error) => {
+				const { context: { source: tokens, position } } = error;
+				const token = restore(source, tokens[position]);
+				return `Unable to interpret "${token}".`;
+			};
+			switch (error?.type) {
+				case 'token': return formatTokenError(source, error);
+				case 'eof': return formatEofError(source, error);
+				default: return `Unknown error: ${S.debug(error)}`;
+			}
+		};
+
+		const defaultRuntimeErrorFormatter = error => {
+			switch (error?.type) {
+				case 'reference': return `"${error.name}" not found.`;
+				case 'property': return `"${error.property}" property not exists.`;
+				case 'range': return `${error.index} is out of range.`;
+				case 'type': return `'${error.expected}' expected, but ${S.debug(error.actual)} found.`;
+				case 'security': return `<${error.target}> is not allowed for security reasons.`;
+				default: return `Unknown error: ${S.debug(error)}`;
+			}
+		};
+
+		return { tokenize, parse, build, compile, expect, run, interpret, defaultParseErrorFormatter, defaultRuntimeErrorFormatter };
+	})();
+
 	const P = (() => {
 		const RE_INTEGER = /^[+\-]?\d+$/;
 		const RE_NUMBER = /^[+\-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+\-]?\d+)?$/i;
@@ -841,5 +1222,5 @@
 		return { pluginName, redef, extProp, extend, swapper, context, defer, enclose };
 	})();
 
-	globalThis.Fs = { O, R, L, S, U, G, P, N, M, Z };
+	globalThis.Fs = { O, R, L, S, U, G, E, P, N, M, Z };
 };

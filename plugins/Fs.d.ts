@@ -201,6 +201,125 @@ declare namespace G {
 	const defaultErrorFormatter: ErrorFormatter<unknown>;
 }
 
+type E = typeof E;
+declare namespace E {
+	type Term = 'number' | 'identifier';
+	type UnaryOperator = '+' | '-' | '!';
+	type BinaryOperator = '+' | '-' | '*' | '/' | '%' | '**' | '===' | '!==' | '<=' | '>=' | '<' | '>' | '&&' | '||';
+	type OtherSymbol = '(' | ')' | '[' | ']' | ',' | '.' | '?' | ':';
+	type Unknown = 'unknown';
+
+	type TokenType = Term | UnaryOperator | BinaryOperator | OtherSymbol | Unknown;
+	type GenericToken<T extends TokenType> = {
+		type: T;
+		start: number;
+		end: number;
+	};
+	type Token = GenericToken<TokenType>;
+	type NumberToken = GenericToken<'number'>;
+	type IdentifierToken = GenericToken<'identifier'>;
+	type UnknownToken = GenericToken<'unknown'>;
+
+	type NumberNode = {
+		type: 'number';
+		value: NumberToken;
+	};
+	type IdentifierNode = {
+		type: 'identifier';
+		name: IdentifierToken;
+	};
+	type MemberAccessNode = {
+		type: 'member-access';
+		object: ExpressionNode;
+		property: IdentifierNode;
+	};
+	type ElementAccessNode = {
+		type: 'element-access';
+		array: ExpressionNode;
+		index: ExpressionNode;
+	};
+	type FunctionCallNode = {
+		type: 'function-call';
+		callee: ExpressionNode;
+		args: ExpressionNode[];
+	};
+	type UnaryOperatorNode = {
+		type: 'unary-operator';
+		operator: GenericToken<UnaryOperator>;
+		expr: ExpressionNode;
+	};
+	type BinaryOperatorNode = {
+		type: 'binary-operator';
+		operator: GenericToken<BinaryOperator>;
+		lhs: ExpressionNode;
+		rhs: ExpressionNode;
+	};
+	type ConditionalOperatorNode = {
+		type: 'conditional-operator';
+		if: ExpressionNode;
+		then: ExpressionNode;
+		else: ExpressionNode;
+	};
+	type ExpressionNode =
+		| NumberNode
+		| IdentifierNode
+		| MemberAccessNode
+		| ElementAccessNode
+		| FunctionCallNode
+		| UnaryOperatorNode
+		| BinaryOperatorNode
+		| ConditionalOperatorNode;
+
+	type ParseError = G.TokenError<string, Token | null> | G.EofError<string>;
+
+	type ReferenceError = {
+		type: 'reference';
+		name: string;
+	};
+	type PropertyError = {
+		type: 'property';
+		property: string;
+	};
+	type RangeError = {
+		type: 'range';
+		index: number;
+	};
+	type TypeError = {
+		type: 'type';
+		expected: 'number' | 'boolean' | 'object' | 'function' | 'array';
+		actual: unknown;
+	};
+	type SecurityError = {
+		type: 'security';
+		target: string;
+	};
+	type RuntimeError =
+		| ReferenceError
+		| PropertyError
+		| RangeError
+		| TypeError
+		| SecurityError;
+
+	type CompilationError = { source: string, error: ParseError; };
+	type CompilationResult = R.Result<Evaluator, CompilationError>;
+	type Evaluator = (args: object) => R.Result<number, RuntimeError>;
+	type ParseErrorFormatter = (source: string, error: ParseError) => string;
+	type RuntimeErrorFormatter = (error: RuntimeErrorFormatter) => string;
+
+	const tokenize: (source: string) => Token[];
+	const parse: (source: readonly Token[]) => R.Result<ExpressionNode, ParseError>;
+	const build: (source: string, node: ExpressionNode) => Evaluator;
+	const compile: (source: string) => CompilationResult;
+	const expect: (result: CompilationResult, errorFormatter?: ParseErrorFormatter) => Evaluator;
+	const run: (evaluator: Evaluator, args: object, errorFormatter?: RuntimeErrorFormatter) => number;
+	const interpret: (
+		source: string,
+		args: object,
+		parseErrorFormatter?: ParseErrorFormatter,
+		runtimeErrorFormatter?: RuntimeErrorFormatter,
+	) => number;
+}
+
 type P = typeof P;
 declare namespace P {
 	type Parser<T, E> = (s: string) => R.Result<T, E>;
@@ -421,7 +540,7 @@ declare namespace Z {
 declare global {
 	type Fs = typeof Fs;
 	namespace Fs {
-		export { O, R, L, S, U, G, P, N, M, Z };
+		export { O, R, L, S, U, G, E, P, N, M, Z };
 	}
 }
 
