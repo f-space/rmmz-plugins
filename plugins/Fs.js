@@ -107,6 +107,8 @@
 		return { map, zip };
 	};
 
+	const throw_ = message => { throw new Error(message); };
+
 	const O = (() => {
 		const some = value => ({ value });
 		const none = () => undefined;
@@ -116,10 +118,11 @@
 		const andThen = (option, fn) => isSome(option) ? fn(unwrap(option)) : option;
 		const orElse = (option, fn) => isSome(option) ? option : fn();
 		const match = (option, onSome, onNone) => isSome(option) ? onSome(unwrap(option)) : onNone();
+		const expect = (option, formatter) => isSome(option) ? unwrap(option) : throw_(formatter());
 		const withDefault = (option, value) => isSome(option) ? unwrap(option) : value;
 		const { map, zip } = Monad(some, andThen);
 
-		return { some, none, unwrap, isSome, isNone, andThen, orElse, match, withDefault, map, zip };
+		return { some, none, unwrap, isSome, isNone, andThen, orElse, match, expect, withDefault, map, zip };
 	})();
 
 	const R = (() => {
@@ -132,10 +135,11 @@
 		const andThen = (result, fn) => isOk(result) ? fn(unwrap(result)) : result;
 		const orElse = (result, fn) => isOk(result) ? result : fn(unwrapErr(result));
 		const match = (result, onOk, onErr) => isOk(result) ? onOk(unwrap(result)) : onErr(unwrapErr(result));
+		const expect = (result, formatter) => isOk(result) ? unwrap(result) : throw_(formatter(unwrapErr(result)));
 		const { map: map, zip: all } = Monad(ok, andThen);
 		const { map: mapErr, zip: any } = Monad(err, orElse);
 
-		return { ok, err, unwrap, unwrapErr, isOk, isErr, andThen, orElse, match, map, mapErr, all, any };
+		return { ok, err, unwrap, unwrapErr, isOk, isErr, andThen, orElse, match, expect, map, mapErr, all, any };
 	})();
 
 	const L = (() => {
@@ -371,13 +375,7 @@
 			return R.map(parser(context), ([value]) => value);
 		};
 
-		const parse = (source, parser, errorFormatter = defaultErrorFormatter) => {
-			return R.match(
-				parser(source),
-				value => value,
-				error => { throw new Error(errorFormatter(error)); },
-			);
-		};
+		const parse = (source, parser, errorFormatter = defaultErrorFormatter) => R.expect(parser(source), errorFormatter);
 
 		const makeDefaultErrorFormatter = (tokenErrorFormatter, validationErrorFormatter) => {
 			const formatter = error => {
@@ -493,13 +491,7 @@
 			}
 		};
 
-		const parse = (s, parser, errorFormatter = defaultErrorFormatter) => {
-			return R.match(
-				parser(s),
-				value => value,
-				error => { throw new Error(errorFormatter(error)); },
-			);
-		};
+		const parse = (s, parser, errorFormatter = defaultErrorFormatter) => R.expect(parser(s), errorFormatter);
 
 		const parseAll = (args, parsers, errorFormatter) => {
 			return Object.fromEntries(Object.entries(parsers).map(([key, parser]) => {
@@ -715,13 +707,8 @@
 			}
 		};
 
-		const parse = (meta, parser, errorFormatter = defaultErrorFormatter) => {
-			return R.match(
-				parser(meta),
-				value => O.withDefault(value, undefined),
-				error => { throw new Error(errorFormatter(error)); },
-			);
-		};
+		const parse = (meta, parser, errorFormatter = defaultErrorFormatter) =>
+			R.expect(R.map(parser(meta), value => O.withDefault(value, undefined)), errorFormatter);
 
 		const meta = (parser, errorFormatter) => U.memoW(meta => parse(meta, parser, errorFormatter));
 

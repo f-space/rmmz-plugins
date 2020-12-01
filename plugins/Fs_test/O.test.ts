@@ -33,6 +33,11 @@ test("match", () => {
 	expect(O.match(O.none(), x => x, () => 0)).toBe(0);
 });
 
+test("expect", () => {
+	expect(O.expect(O.some(42), () => "foo")).toBe(42);
+	expect(() => O.expect(O.none(), () => "foo")).toThrow(new Error("foo"));
+});
+
 test("withDefault", () => {
 	expect(O.withDefault(O.some(42), 0)).toBe(42);
 	expect(O.withDefault(O.none(), 0)).toBe(0);

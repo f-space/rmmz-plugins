@@ -27,6 +27,7 @@ declare namespace O {
 	const andThen: <T, U>(option: Option<T>, fn: (value: T) => Option<U>) => Option<U>;
 	const orElse: <T>(option: Option<T>, fn: () => Option<T>) => Option<T>;
 	const match: <T, P, Q>(option: Option<T>, onSome: (value: T) => P, onNone: () => Q) => P | Q;
+	const expect: <T>(option: Option<T>, formatter: () => string) => T;
 	const withDefault: <T>(option: Option<T>, value: T) => T;
 	const map: <T, U>(option: Option<T>, fn: (value: T) => U) => Option<U>;
 	const zip: <A extends readonly Option<any>[]>(options: readonly [...A]) => Zip<A>;
@@ -56,6 +57,7 @@ declare namespace R {
 	const andThen: <T, U, E>(result: Result<T, E>, fn: (value: T) => Result<U, E>) => Result<U, E>;
 	const orElse: <T, E, F>(result: Result<T, E>, fn: (error: E) => Result<T, F>) => Result<T, F>;
 	const match: <T, E, P, Q>(result: Result<T, E>, onOk: (value: T) => P, onErr: (error: E) => Q) => P | Q;
+	const expect: <T, E>(result: Result<T, E>, formatter: (error: E) => string) => T;
 	const map: <T, U, E>(result: Result<T, E>, fn: (value: T) => U) => Result<U, E>;
 	const mapErr: <T, E, F>(result: Result<T, E>, fn: (error: E) => F) => Result<T, F>;
 	const all: <A extends readonly Result<any, any>[]>(results: readonly [...A]) => All<A>;

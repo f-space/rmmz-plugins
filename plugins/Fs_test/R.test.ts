@@ -39,6 +39,11 @@ test("match", () => {
 	expect(R.match(R.err(-1), x => x, (e: number) => -e)).toBe(1);
 });
 
+test("expect", () => {
+	expect(R.expect(R.ok("foo"), s => s + "bar")).toBe("foo");
+	expect(() => R.expect(R.err("foo"), s => s + "bar")).toThrow(new Error("foobar"));
+});
+
 test("map", () => {
 	expect(R.unwrap(R.map(R.ok(42), (x: number) => x * 10) as Ok<number>)).toBe(420);
 	expect(R.unwrapErr(R.map(R.err(-1), (x: number) => x * 10) as Err<number>)).toBe(-1);
