@@ -108,6 +108,7 @@
 	};
 
 	const throw_ = message => { throw new Error(message); };
+	const try_ = (fn, handler) => { try { return fn(); } catch (e) { return handler(e); } };
 
 	const O = (() => {
 		const some = value => ({ value });
@@ -136,10 +137,11 @@
 		const orElse = (result, fn) => isOk(result) ? result : fn(unwrapErr(result));
 		const match = (result, onOk, onErr) => isOk(result) ? onOk(unwrap(result)) : onErr(unwrapErr(result));
 		const expect = (result, formatter) => isOk(result) ? unwrap(result) : throw_(formatter(unwrapErr(result)));
+		const attempt = fn => try_(() => ok(fn()), err);
 		const { map: map, zip: all } = Monad(ok, andThen);
 		const { map: mapErr, zip: any } = Monad(err, orElse);
 
-		return { ok, err, unwrap, unwrapErr, isOk, isErr, andThen, orElse, match, expect, map, mapErr, all, any };
+		return { ok, err, unwrap, unwrapErr, isOk, isErr, andThen, orElse, match, expect, attempt, map, mapErr, all, any };
 	})();
 
 	const L = (() => {
@@ -840,7 +842,7 @@
 		const boolean = s => s === 'true' ? R.ok(true) : s === 'false' ? R.ok(false) : R.err(formatError(s, "boolean"));
 		const custom = fn => s => R.mapErr(fn(s), expected => formatError(s, expected));
 
-		const json = s => { try { return R.ok(JSON.parse(s)); } catch (e) { return R.err(jsonError(s, e)); } };
+		const json = s => R.mapErr(R.attempt(() => JSON.parse(s)), e => jsonError(s, e));
 		const array = parser => andThen(json, value => s =>
 			Array.isArray(value)
 				? value.reduce((result, x) => R.andThen(result, xs => R.map(parser(x), x => [...xs, x])), R.ok([]))

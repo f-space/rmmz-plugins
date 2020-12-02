@@ -63,12 +63,13 @@ declare namespace R {
 	const orElse: <T, E, F>(result: Result<T, E>, fn: (error: E) => Result<T, F>) => Result<T, F>;
 	const match: <T, E, P, Q>(result: Result<T, E>, onOk: (value: T) => P, onErr: (error: E) => Q) => P | Q;
 	const expect: <T, E>(result: Result<T, E>, formatter: (error: E) => string) => T;
+	const attempt: <T>(fn: () => T) => Result<T, unknown>;
 	const map: <T, U, E>(result: Result<T, E>, fn: (value: T) => U) => Result<U, E>;
 	const mapErr: <T, E, F>(result: Result<T, E>, fn: (error: E) => F) => Result<T, F>;
 	const all: <A extends readonly Result<any, any>[]>(results: readonly [...A]) => All<A>;
 	const any: <A extends readonly Result<any, any>[]>(results: readonly [...A]) => Any<A>;
 
-	export { ok, err, unwrap, unwrapErr, isOk, isErr, andThen, orElse, match, expect, map, mapErr, all, any };
+	export { ok, err, unwrap, unwrapErr, isOk, isErr, andThen, orElse, match, expect, attempt, map, mapErr, all, any };
 }
 
 declare namespace L {
