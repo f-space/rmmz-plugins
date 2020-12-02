@@ -334,7 +334,7 @@
 		const map = (parser, fn) => context => R.map(parser(context), ([value, context]) => [fn(value), context]);
 		const mapError = (parser, fn) => context => R.mapErr(parser(context), fn);
 		const wrapError = (parser, fn) => context => mapError(parser, error => fn(context, error))(context);
-		const try_ = fn => (...args) => R.match(fn(...args), succeed, fail);
+		const fromResult = result => R.match(result, succeed, fail);
 
 		const sequence = (a, b) => andThen(a, v1 => map(b, v2 => L.cons(v2, v1)));
 		const choice = (a, b) => orElse(a, e1 => mapError(b, e2 => L.cons(e2, e1)));
@@ -349,7 +349,8 @@
 		const and = (pred, parser) => context => R.match(pred(context), () => parser(context), error => R.err(andError(context, error)));
 		const not = (pred, parser) => context => R.match(pred(context), ([value]) => R.err(notError(context, value)), () => parser(context));
 		const ref = getter => context => getter()(context);
-		const validate = (parser, validator) => wrapError(andThen(parser, try_(validator)), validationError);
+		const validate = (parser, validator) =>
+			context => andThen(parser, value => fromResult(R.mapErr(validator(value), cause => validationError(context, cause))))(context);
 
 		const memo = parser => context => {
 			const { position, cache } = context;
@@ -827,10 +828,10 @@
 		const map = (parser, fn) => s => R.map(parser(s), fn);
 		const mapError = (parser, fn) => s => R.mapErr(parser(s), fn);
 		const wrapError = (parser, fn) => s => mapError(parser, error => fn(s, error))(s);
-		const try_ = fn => (...args) => R.match(fn(...args), succeed, fail);
+		const fromResult = result => R.match(result, succeed, fail);
 
 		const withDefault = (parser, value) => orElse(map(empty, () => value), () => parser);
-		const validate = (parser, validator) => wrapError(andThen(parser, try_(validator)), validationError);
+		const validate = (parser, validator) => andThen(parser, value => wrapError(fromResult(validator(value)), validationError));
 
 		const empty = s => s === "" ? R.ok(undefined) : R.err(formatError(s, "empty"));
 		const integer = s => RE_INTEGER.test(s) ? R.ok(Number.parseInt(s, 10)) : R.err(formatError(s, "integer"));

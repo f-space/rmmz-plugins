@@ -45,6 +45,7 @@ test("withDefault", () => {
 test("validate", () => {
 	const validator = (x: number) => x % 2 !== 0 ? R.ok(x) : R.err("even");
 	expect(parse("1", P.validate(P.integer, validator))).toEqualOk(1);
+	expect(parse("foo", P.validate(P.integer, validator))).toMatchErr(formatError("integer"));
 	expect(parse("42", P.validate(P.integer, validator))).toMatchErr(validationError("even"));
 });
 
