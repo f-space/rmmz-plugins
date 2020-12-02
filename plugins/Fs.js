@@ -329,7 +329,7 @@
 		const fail = error => () => R.err(error);
 		const andThen = (parser, fn) => context => R.andThen(parser(context), ([value, context]) => fn(value)(context));
 		const orElse = (parser, fn) => context => R.orElse(parser(context), error => fn(error)(context));
-		const either = (cond, then, else_) =>
+		const if_ = (cond, then, else_) =>
 			context => R.match(cond(context), ([value, context]) => then(value)(context), error => else_(error)(context));
 		const map = (parser, fn) => context => R.map(parser(context), ([value, context]) => [fn(value), context]);
 		const mapError = (parser, fn) => context => R.mapErr(parser(context), fn);
@@ -338,7 +338,7 @@
 
 		const sequence = (a, b) => andThen(a, v1 => map(b, v2 => L.cons(v2, v1)));
 		const choice = (a, b) => orElse(a, e1 => mapError(b, e2 => L.cons(e2, e1)));
-		const loop = (parser, acc) => either(parser, value => loop(parser, L.cons(value, acc)), () => succeed(acc));
+		const loop = (parser, acc) => if_(parser, value => loop(parser, L.cons(value, acc)), () => succeed(acc));
 		const toArray = list => L.toArray(L.reverse(list));
 
 		const seqOf = parsers => map(parsers.reduce(sequence, succeed(L.nil())), toArray);
@@ -411,7 +411,7 @@
 			fail,
 			andThen,
 			orElse,
-			either,
+			if: if_,
 			map,
 			mapError,
 			seqOf,
@@ -487,7 +487,7 @@
 
 			const group = (term, expr) => {
 				const succ = G.andThen(expr, node => G.map(token(")"), () => node));
-				return G.either(token("("), () => succ, () => term);
+				return G.if(token("("), () => succ, () => term);
 			};
 
 			const postfixOp = (term, expr) => {
@@ -506,7 +506,7 @@
 					G.seqOf([identifier, cont]),
 					([property, ctor]) => object => ctor(memberAccessNode(object, property)),
 				);
-				return G.either(token("."), () => succ, () => next);
+				return G.if(token("."), () => succ, () => next);
 			};
 
 			const elementAccess = (expr, cont) => next => {
@@ -514,7 +514,7 @@
 					G.seqOf([expr, token("]"), cont]),
 					([index, , ctor]) => array => ctor(elementAccessNode(array, index)),
 				);
-				return G.either(token("["), () => succ, () => next);
+				return G.if(token("["), () => succ, () => next);
 			};
 
 			const functionCall = (expr, cont) => next => {
@@ -522,10 +522,10 @@
 					G.seqOf([functionArgs(expr), token(")"), cont]),
 					([args, , ctor]) => callee => ctor(functionCallNode(callee, args)),
 				);
-				return G.either(token("("), () => succ, () => next);
+				return G.if(token("("), () => succ, () => next);
 			};
 			const functionArgs = expr => {
-				const rec = G.andThen(expr, node => G.either(
+				const rec = G.andThen(expr, node => G.if(
 					token(","),
 					() => G.orElse(G.and(token(")"), G.succeed(L.singleton(node))), () => G.map(rec, rest => L.cons(node, rest))),
 					() => G.succeed(L.singleton(node)),
@@ -534,7 +534,7 @@
 			};
 
 			const unaryOp = (term, op) => {
-				const rec = G.either(
+				const rec = G.if(
 					op,
 					operator => G.map(rec, expr => unaryOpNode(operator, expr)),
 					() => term,
@@ -547,7 +547,7 @@
 			const binaryOpR = (term, op) => G.map(binaryOpList(term, op), list => L.reduceRight(list, binaryOpReducerR, [])[0]);
 			const binaryOpReducerR = (xs, x) => xs.length == 2 ? [binaryOpNode(xs[1], x, xs[0])] : [...xs, x];
 			const binaryOpList = (term, op) => {
-				const rec = G.andThen(term, lhs => G.either(
+				const rec = G.andThen(term, lhs => G.if(
 					op,
 					operator => G.map(rec, rhs => L.cons(lhs, L.cons(operator, rhs))),
 					() => G.succeed(L.singleton(lhs)),
@@ -557,7 +557,7 @@
 
 			const condOp = (term, expr) => {
 				const succ = G.seqOf([expr, token(":"), G.ref(() => rec)]);
-				const rec = G.andThen(term, if_ => G.either(
+				const rec = G.andThen(term, if_ => G.if(
 					token("?"),
 					() => G.map(succ, ([then, , else_]) => condOpNode(if_, then, else_)),
 					() => G.succeed(if_),

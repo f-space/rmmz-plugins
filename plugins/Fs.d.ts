@@ -190,7 +190,7 @@ declare namespace G {
 		parser: PartialParser<S, T, E>,
 		fn: (error: E) => PartialParser<S, U, F>,
 	) => PartialParser<S, T | U, F>;
-	const either: <S, T, U, V, E, F, G>(
+	const if_: <S, T, U, V, E, F, G>(
 		cond: PartialParser<S, T, E>,
 		then: (value: T) => PartialParser<S, U, F>,
 		else_: (error: E) => PartialParser<S, V, G>,
@@ -229,7 +229,7 @@ declare namespace G {
 		fail,
 		andThen,
 		orElse,
-		either,
+		if_ as if,
 		map,
 		mapError,
 		seqOf,
