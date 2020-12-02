@@ -1,18 +1,19 @@
-declare const SOME_SYMBOL: unique symbol;
-declare const NONE_SYMBOL: unique symbol;
-declare const OK_SYMBOL: unique symbol;
-declare const ERR_SYMBOL: unique symbol;
-declare const NIL_SYMBOL: unique symbol;
-declare const CONS_SYMBOL: unique symbol;
-
 type IncludesNever<T extends any[]> =
 	T extends readonly [infer F, ...infer R] ? (F extends never ? true : IncludesNever<R>) : false;
 
-type O = typeof O;
+declare global {
+	namespace Fs {
+		export { O, R, L, S, U, G, E, P, N, M, Z };
+	}
+}
+
 declare namespace O {
-	type Option<T> = Some<T> | None;
-	interface Some<T> { [SOME_SYMBOL]: T; }
-	interface None { [NONE_SYMBOL]: never; }
+	const SOME_SYMBOL: unique symbol;
+	const NONE_SYMBOL: unique symbol;
+
+	export type Option<T> = Some<T> | None;
+	export interface Some<T> { [SOME_SYMBOL]: T; }
+	export interface None { [NONE_SYMBOL]: never; }
 
 	type Zip<A> = ZipRec<A, []>;
 	type ZipRec<A, T extends any[]> = A extends readonly [Option<infer U>, ...infer Rest]
@@ -31,13 +32,17 @@ declare namespace O {
 	const withDefault: <T>(option: Option<T>, value: T) => T;
 	const map: <T, U>(option: Option<T>, fn: (value: T) => U) => Option<U>;
 	const zip: <A extends readonly Option<any>[]>(options: readonly [...A]) => Zip<A>;
+
+	export { some, none, unwrap, isSome, isNone, andThen, orElse, match, expect, withDefault, map, zip };
 }
 
-type R = typeof R;
 declare namespace R {
-	type Result<T, E> = Ok<T> | Err<E>;
-	interface Ok<T> { [OK_SYMBOL]: T; }
-	interface Err<E> { [ERR_SYMBOL]: E; }
+	const OK_SYMBOL: unique symbol;
+	const ERR_SYMBOL: unique symbol;
+
+	export type Result<T, E> = Ok<T> | Err<E>;
+	export interface Ok<T> { [OK_SYMBOL]: T; }
+	export interface Err<E> { [ERR_SYMBOL]: E; }
 
 	type All<A> = AllRec<A, [], never>;
 	type AllRec<A, T extends any[], E> = A extends readonly [Result<infer U, infer F>, ...infer Rest]
@@ -62,13 +67,17 @@ declare namespace R {
 	const mapErr: <T, E, F>(result: Result<T, E>, fn: (error: E) => F) => Result<T, F>;
 	const all: <A extends readonly Result<any, any>[]>(results: readonly [...A]) => All<A>;
 	const any: <A extends readonly Result<any, any>[]>(results: readonly [...A]) => Any<A>;
+
+	export { ok, err, unwrap, unwrapErr, isOk, isErr, andThen, orElse, match, expect, map, mapErr, all, any };
 }
 
-type L = typeof L;
 declare namespace L {
-	type List<T> = Nil | Cons<T>;
-	interface Nil { [NIL_SYMBOL]: never; }
-	interface Cons<T> { [CONS_SYMBOL]: T; }
+	const NIL_SYMBOL: unique symbol;
+	const CONS_SYMBOL: unique symbol;
+
+	export type List<T> = Nil | Cons<T>;
+	export interface Nil { [NIL_SYMBOL]: never; }
+	export interface Cons<T> { [CONS_SYMBOL]: T; }
 
 	const nil: () => Nil;
 	const cons: <T>(x: T, xs: List<T>) => Cons<T>;
@@ -85,15 +94,17 @@ declare namespace L {
 	const reduceRight: <T, A>(list: List<T>, fn: (acc: A, x: T) => A, value: A) => A;
 	const map: <T, U>(list: List<T>, fn: (x: T) => U) => List<U>;
 	const toArray: <T>(list: List<T>) => T[];
+
+	export { nil, cons, singleton, empty, head, tail, match, find, some, every, reverse, reduce, reduceRight, map, toArray };
 }
 
-type S = typeof S;
 declare namespace S {
 	const ellipsis: (s: string, length: number) => string;
 	const debug: (value: unknown, replacer?: (value: unknown) => unknown) => string;
+
+	export { ellipsis, debug };
 }
 
-type U = typeof U;
 declare namespace U {
 	type ArgsSerializer<F extends (...args: any[]) => any> = (args: Parameters<F>) => string | number;
 	type EqualFn<F extends (...args: any[]) => any> = (a: Parameters<F>, b: Parameters<F>) => boolean;
@@ -102,165 +113,201 @@ declare namespace U {
 	const memo: <F extends (...args: any[]) => any>(fn: F, size: number, serialize?: ArgsSerializer<F>) => F;
 	const memo1: <F extends (...args: any[]) => any>(fn: F, eq?: EqualFn<F>) => F;
 	const memoW: <F extends (obj: object) => any>(fn: F) => F;
+
+	export { simpleEqual, memo, memo1, memoW };
 }
 
-type G = typeof G;
 declare namespace G {
-	type Source = ArrayLike<unknown>;
-	type Context<S> = {
+	const PARSER_SYMBOL: unique symbol;
+
+	export type Source = ArrayLike<unknown>;
+	export type Context<S> = {
 		source: S;
 		position: number;
-		cache: Cache<S, unknown, unknown>;
-	};
-	type Cache<S, T, E> = L.List<CacheEntry<S, T, E>>[];
-	type CacheEntry<S, T, E> = {
-		parser: Parser<S, T, E>;
-		result: ReturnType<Parser<S, T, E>>;
 	};
 
-	type Parser<S, T, E> = (context: Context<S>) => R.Result<[T, Context<S>], E>;
-	type BuiltParser<S, T, E> = (source: S) => R.Result<T, E>;
+	export type PartialParser<S, T, E> = { [PARSER_SYMBOL]: [S, T, E]; };
+	export type Parser<S, T, E> = (source: S) => R.Result<T, E>;
 
-	type ParseOptions = {
+	export type ParseOptions = {
 		noCache?: boolean;
 	};
 
-	type TokenError<S, C> = {
+	export type TokenError<S, C> = {
 		type: 'token';
 		context: Context<S>;
 		name: string;
 		cause: C;
 	};
-	type EofError<S> = {
+	export type EofError<S> = {
 		type: 'eof';
 		context: Context<S>;
 	};
-	type PathError<S, E extends any[]> = {
+	export type PathError<S, E extends any[]> = {
 		type: 'path';
 		context: Context<S>;
 		errors: E;
 	};
-	type AndError<S, E> = {
+	export type AndError<S, E> = {
 		type: 'and';
 		context: Context<S>;
 		error: E;
 	};
-	type NotError<S, T> = {
+	export type NotError<S, T> = {
 		type: 'not';
 		context: Context<S>;
 		value: T;
 	};
-	type ValidationError<S, V> = {
+	export type ValidationError<S, V> = {
 		type: 'validation';
 		context: Context<S>;
 		cause: V;
 	};
 
-	type AcceptToken<S, T, C> = (source: S, position: number) => R.Result<[T, number], C>;
-	type SeqOf<P> = SeqOfRec<P, unknown, [], never>;
-	type SeqOfRec<P, S, T extends any[], E> = P extends readonly [Parser<infer R, infer U, infer F>, ...infer Rest]
+	export type AcceptToken<S, T, C> = (source: S, position: number) => R.Result<[T, number], C>;
+	export type SeqOf<P> = SeqOfRec<P, unknown, [], never>;
+	type SeqOfRec<P, S, T extends any[], E> =
+		P extends readonly [PartialParser<infer R, infer U, infer F>, ...infer Rest]
 		? SeqOfRec<Rest, S & R, [...T, U], E | F>
-		: Parser<S, IncludesNever<T> extends true ? never : T, E>;
-	type OneOf<P> = OneOfRec<P, unknown, never, []>;
-	type OneOfRec<P, S, T, E extends any[]> = P extends readonly [Parser<infer R, infer U, infer F>, ...infer Rest]
+		: PartialParser<S, IncludesNever<T> extends true ? never : T, E>;
+	export type OneOf<P> = OneOfRec<P, unknown, never, []>;
+	type OneOfRec<P, S, T, E extends any[]> =
+		P extends readonly [PartialParser<infer R, infer U, infer F>, ...infer Rest]
 		? OneOfRec<Rest, S & R, T | U, [...E, F]>
-		: Parser<S, T, IncludesNever<E> extends true ? never : PathError<S, E>>;
-	type Validator<T, U, V> = (value: T) => R.Result<U, V>;
-	type ErrorFormatter<E> = (error: E) => string;
+		: PartialParser<S, T, IncludesNever<E> extends true ? never : PathError<S, E>>;
+	export type Validator<T, U, V> = (value: T) => R.Result<U, V>;
+	export type ErrorFormatter<E> = (error: E) => string;
 
-	const token: <S, T, C>(name: string, accept: AcceptToken<S, T, C>) => Parser<S, T, TokenError<S, C>>;
-	const eof: <S>() => Parser<S, null, EofError<S>>;
-	const succeed: <S, T>(value: T) => Parser<S, T, never>;
-	const fail: <S, E>(error: E) => Parser<S, never, E>;
-	const andThen: <S, T, U, E, F>(parser: Parser<S, T, E>, fn: (value: T) => Parser<S, U, F>) => Parser<S, U, E | F>;
-	const orElse: <S, T, U, E, F>(parser: Parser<S, T, E>, fn: (error: E) => Parser<S, U, F>) => Parser<S, T | U, F>;
+	const token: <S, T, C>(name: string, accept: AcceptToken<S, T, C>) => PartialParser<S, T, TokenError<S, C>>;
+	const eof: <S>() => PartialParser<S, null, EofError<S>>;
+	const succeed: <S, T>(value: T) => PartialParser<S, T, never>;
+	const fail: <S, E>(error: E) => PartialParser<S, never, E>;
+	const andThen: <S, T, U, E, F>(
+		parser: PartialParser<S, T, E>,
+		fn: (value: T) => PartialParser<S, U, F>,
+	) => PartialParser<S, U, E | F>;
+	const orElse: <S, T, U, E, F>(
+		parser: PartialParser<S, T, E>,
+		fn: (error: E) => PartialParser<S, U, F>,
+	) => PartialParser<S, T | U, F>;
 	const either: <S, T, U, V, E, F, G>(
-		cond: Parser<S, T, E>,
-		then: (value: T) => Parser<S, U, F>,
-		else_: (error: E) => Parser<S, V, G>,
-	) => Parser<S, U, F> | Parser<S, V, G>;
-	const map: <S, T, U, E>(parser: Parser<S, T, E>, fn: (value: T) => U) => Parser<S, U, E>;
-	const mapError: <S, T, E, F>(parser: Parser<S, T, E>, fn: (error: E) => F) => Parser<S, T, F>;
-	const seqOf: <P extends readonly Parser<any, any, any>[]>(parsers: readonly [...P]) => SeqOf<P>;
-	const oneOf: <P extends readonly Parser<any, any, any>[]>(parsers: readonly [...P]) => OneOf<P>;
-	const optional: <S, P>(parser: Parser<S, P, unknown>) => Parser<S, O.Option<P>, never>;
-	const many: <S, P>(parser: Parser<S, P, unknown>) => Parser<S, P[], never>;
-	const many1: <S, P, E>(parser: Parser<S, P, E>) => Parser<S, P[], E>;
-	const and: <S, T, E, F>(pred: Parser<S, unknown, F>, parser: Parser<S, T, E>) => Parser<S, T, E | AndError<S, F>>;
-	const not: <S, T, U, E>(pred: Parser<S, U, unknown>, parser: Parser<S, T, E>) => Parser<S, T, E | NotError<S, U>>;
-	const ref: <S, T, U>(getter: () => Parser<S, T, U>) => Parser<S, T, U>;
-	const validate: <S, T, U, E, V>(parser: Parser<S, T, E>, validator: Validator<T, U, V>)
-		=> Parser<S, U, E | ValidationError<S, V>>;
-	const memo: <S, T, E>(parser: Parser<S, T, E>) => Parser<S, T, E>;
-	const make: <S, T, E>(parser: Parser<S, T, E>, options?: ParseOptions) => BuiltParser<S, T, E>;
-	const parse: <S extends Source, T, E>(source: S, parser: BuiltParser<S, T, E>, errorFormatter?: ErrorFormatter<E>) => T;
+		cond: PartialParser<S, T, E>,
+		then: (value: T) => PartialParser<S, U, F>,
+		else_: (error: E) => PartialParser<S, V, G>,
+	) => PartialParser<S, U, F> | PartialParser<S, V, G>;
+	const map: <S, T, U, E>(parser: PartialParser<S, T, E>, fn: (value: T) => U) => PartialParser<S, U, E>;
+	const mapError: <S, T, E, F>(parser: PartialParser<S, T, E>, fn: (error: E) => F) => PartialParser<S, T, F>;
+	const seqOf: <P extends readonly PartialParser<any, any, any>[]>(parsers: readonly [...P]) => SeqOf<P>;
+	const oneOf: <P extends readonly PartialParser<any, any, any>[]>(parsers: readonly [...P]) => OneOf<P>;
+	const optional: <S, P>(parser: PartialParser<S, P, unknown>) => PartialParser<S, O.Option<P>, never>;
+	const many: <S, P>(parser: PartialParser<S, P, unknown>) => PartialParser<S, P[], never>;
+	const many1: <S, P, E>(parser: PartialParser<S, P, E>) => PartialParser<S, P[], E>;
+	const and: <S, T, E, F>(
+		pred: PartialParser<S, unknown, F>,
+		parser: PartialParser<S, T, E>,
+	) => PartialParser<S, T, E | AndError<S, F>>;
+	const not: <S, T, U, E>(
+		pred: PartialParser<S, U, unknown>,
+		parser: PartialParser<S, T, E>,
+	) => PartialParser<S, T, E | NotError<S, U>>;
+	const ref: <S, T, U>(getter: () => PartialParser<S, T, U>) => PartialParser<S, T, U>;
+	const validate: <S, T, U, E, V>(parser: PartialParser<S, T, E>, validator: Validator<T, U, V>)
+		=> PartialParser<S, U, E | ValidationError<S, V>>;
+	const memo: <S, T, E>(parser: PartialParser<S, T, E>) => PartialParser<S, T, E>;
+	const make: <S, T, E>(parser: PartialParser<S, T, E>, options?: ParseOptions) => Parser<S, T, E>;
+	const parse: <S extends Source, T, E>(source: S, parser: Parser<S, T, E>, errorFormatter?: ErrorFormatter<E>) => T;
 	const makeDefaultErrorFormatter: (
 		tokenErrorFormatter: ErrorFormatter<unknown>,
 		validationErrorFormatter: ErrorFormatter<unknown>,
 	) => ErrorFormatter<unknown>;
 	const defaultErrorFormatter: ErrorFormatter<unknown>;
+
+	export {
+		token,
+		eof,
+		succeed,
+		fail,
+		andThen,
+		orElse,
+		either,
+		map,
+		mapError,
+		seqOf,
+		oneOf,
+		optional,
+		many,
+		many1,
+		and,
+		not,
+		ref,
+		validate,
+		memo,
+		make,
+		parse,
+		makeDefaultErrorFormatter,
+		defaultErrorFormatter,
+	};
 }
 
-type E = typeof E;
 declare namespace E {
-	type Term = 'number' | 'identifier';
-	type UnaryOperator = '+' | '-' | '!';
-	type BinaryOperator = '+' | '-' | '*' | '/' | '%' | '**' | '===' | '!==' | '<=' | '>=' | '<' | '>' | '&&' | '||';
-	type OtherSymbol = '(' | ')' | '[' | ']' | ',' | '.' | '?' | ':';
-	type Unknown = 'unknown';
+	export type Term = 'number' | 'identifier';
+	export type UnaryOperator = '+' | '-' | '!';
+	export type BinaryOperator = '+' | '-' | '*' | '/' | '%' | '**' | '===' | '!==' | '<=' | '>=' | '<' | '>' | '&&' | '||';
+	export type OtherSymbol = '(' | ')' | '[' | ']' | ',' | '.' | '?' | ':';
+	export type Unknown = 'unknown';
 
-	type TokenType = Term | UnaryOperator | BinaryOperator | OtherSymbol | Unknown;
-	type GenericToken<T extends TokenType> = {
+	export type TokenType = Term | UnaryOperator | BinaryOperator | OtherSymbol | Unknown;
+	export type Token<T extends TokenType> = {
 		type: T;
 		start: number;
 		end: number;
 	};
-	type Token = GenericToken<TokenType>;
-	type NumberToken = GenericToken<'number'>;
-	type IdentifierToken = GenericToken<'identifier'>;
-	type UnknownToken = GenericToken<'unknown'>;
+	export type AnyToken = Token<TokenType>;
+	export type NumberToken = Token<'number'>;
+	export type IdentifierToken = Token<'identifier'>;
+	export type UnknownToken = Token<'unknown'>;
 
-	type NumberNode = {
+	export type NumberNode = {
 		type: 'number';
 		value: NumberToken;
 	};
-	type IdentifierNode = {
+	export type IdentifierNode = {
 		type: 'identifier';
 		name: IdentifierToken;
 	};
-	type MemberAccessNode = {
+	export type MemberAccessNode = {
 		type: 'member-access';
 		object: ExpressionNode;
 		property: IdentifierNode;
 	};
-	type ElementAccessNode = {
+	export type ElementAccessNode = {
 		type: 'element-access';
 		array: ExpressionNode;
 		index: ExpressionNode;
 	};
-	type FunctionCallNode = {
+	export type FunctionCallNode = {
 		type: 'function-call';
 		callee: ExpressionNode;
 		args: ExpressionNode[];
 	};
-	type UnaryOperatorNode = {
+	export type UnaryOperatorNode = {
 		type: 'unary-operator';
-		operator: GenericToken<UnaryOperator>;
+		operator: Token<UnaryOperator>;
 		expr: ExpressionNode;
 	};
-	type BinaryOperatorNode = {
+	export type BinaryOperatorNode = {
 		type: 'binary-operator';
-		operator: GenericToken<BinaryOperator>;
+		operator: Token<BinaryOperator>;
 		lhs: ExpressionNode;
 		rhs: ExpressionNode;
 	};
-	type ConditionalOperatorNode = {
+	export type ConditionalOperatorNode = {
 		type: 'conditional-operator';
 		if: ExpressionNode;
 		then: ExpressionNode;
 		else: ExpressionNode;
 	};
-	type ExpressionNode =
+	export type ExpressionNode =
 		| NumberNode
 		| IdentifierNode
 		| MemberAccessNode
@@ -270,44 +317,44 @@ declare namespace E {
 		| BinaryOperatorNode
 		| ConditionalOperatorNode;
 
-	type ParseError = G.TokenError<string, Token | null> | G.EofError<string>;
+	export type ParseError = G.TokenError<string, AnyToken | null> | G.EofError<string>;
 
-	type ReferenceError = {
+	export type ReferenceError = {
 		type: 'reference';
 		name: string;
 	};
-	type PropertyError = {
+	export type PropertyError = {
 		type: 'property';
 		property: string;
 	};
-	type RangeError = {
+	export type RangeError = {
 		type: 'range';
 		index: number;
 	};
-	type TypeError = {
+	export type TypeError = {
 		type: 'type';
 		expected: 'number' | 'boolean' | 'object' | 'function' | 'array';
 		actual: unknown;
 	};
-	type SecurityError = {
+	export type SecurityError = {
 		type: 'security';
 		target: string;
 	};
-	type RuntimeError =
+	export type RuntimeError =
 		| ReferenceError
 		| PropertyError
 		| RangeError
 		| TypeError
 		| SecurityError;
 
-	type CompilationError = { source: string, error: ParseError; };
-	type CompilationResult = R.Result<Evaluator, CompilationError>;
-	type Evaluator = (args: object) => R.Result<number, RuntimeError>;
-	type ParseErrorFormatter = (source: string, error: ParseError) => string;
-	type RuntimeErrorFormatter = (error: RuntimeErrorFormatter) => string;
+	export type CompilationError = { source: string, error: ParseError; };
+	export type CompilationResult = R.Result<Evaluator, CompilationError>;
+	export type Evaluator = (args: object) => R.Result<number, RuntimeError>;
+	export type ParseErrorFormatter = (source: string, error: ParseError) => string;
+	export type RuntimeErrorFormatter = (error: RuntimeErrorFormatter) => string;
 
-	const tokenize: (source: string) => Token[];
-	const parse: (source: readonly Token[]) => R.Result<ExpressionNode, ParseError>;
+	const tokenize: (source: string) => AnyToken[];
+	const parse: (source: readonly AnyToken[]) => R.Result<ExpressionNode, ParseError>;
 	const build: (source: string, node: ExpressionNode) => Evaluator;
 	const compile: (source: string) => CompilationResult;
 	const expect: (result: CompilationResult, errorFormatter?: ParseErrorFormatter) => Evaluator;
@@ -318,35 +365,38 @@ declare namespace E {
 		parseErrorFormatter?: ParseErrorFormatter,
 		runtimeErrorFormatter?: RuntimeErrorFormatter,
 	) => number;
+
+	export { tokenize, parse, build, compile, expect, run, interpret };
 }
 
-type P = typeof P;
 declare namespace P {
-	type Parser<T, E> = (s: string) => R.Result<T, E>;
-	type EntryParser<K extends string, T, E> = (object: object) => R.Result<[K, T], E>;
+	export type Parser<T, E> = (s: string) => R.Result<T, E>;
+	export type EntryParser<K extends string, T, E> = (object: object) => R.Result<[K, T], E>;
 
-	type FormatError<K> = {
+	export type FormatError<K> = {
 		type: 'format';
 		source: string;
 		expected: K;
 	};
-	type JsonError = {
+	export type JsonError = {
 		type: 'json';
 		source: string;
 		inner: Error;
 	};
-	type ValidationError<V> = {
+	export type ValidationError<V> = {
 		type: 'validation';
 		source: string;
 		cause: V;
 	};
 
-	type Validator<T, U, V> = (value: T) => R.Result<U, V>;
+	export type Archetype = Parser<any, any> | readonly [Archetype] | { [key: string]: Archetype; };
+	export type Validator<T, U, V> = (value: T) => R.Result<U, V>;
+	export type ErrorFormatter<E> = (error: E) => string;
+
 	type Struct<P> = StructRec<P, {}, never>;
 	type StructRec<P, T, E> = P extends [EntryParser<infer K, infer U, infer F>, ...infer Rest]
 		? StructRec<Rest, T & Record<K, U>, E | F>
 		: Parser<T, E | JsonError | FormatError<"struct">>;
-	type Archetype = Parser<any, any> | readonly [Archetype] | { [key: string]: Archetype; };
 	type Make<A> = Parser<MakeValue<A>, MakeError<A>>;
 	type MakeValue<A> =
 		A extends Parser<infer T, any> ? T :
@@ -356,7 +406,6 @@ declare namespace P {
 		A extends Parser<any, infer E> ? E :
 		A extends readonly [Archetype] ? MakeError<A[0]> | JsonError | FormatError<"array"> :
 		A extends { [key: string]: Archetype; } ? MakeError<A[keyof A]> | JsonError | FormatError<"struct"> : never;
-	type ErrorFormatter<E> = (error: E) => string;
 
 	const succeed: <T>(value: T) => Parser<T, never>;
 	const fail: <E>(error: E) => Parser<never, E>;
@@ -385,101 +434,166 @@ declare namespace P {
 	) => { [K in keyof P]: P[K] extends Parser<infer T, any> ? T : never };
 	const makeDefaultErrorFormatter: (validationErrorFormatter: ErrorFormatter<unknown>) => ErrorFormatter<unknown>;
 	const defaultErrorFormatter: ErrorFormatter<unknown>;
+
+	export {
+		succeed,
+		fail,
+		andThen,
+		orElse,
+		map,
+		mapError,
+		withDefault,
+		validate,
+		empty,
+		integer,
+		number,
+		string,
+		boolean,
+		custom,
+		json,
+		array,
+		struct,
+		entry,
+		make,
+		parse,
+		parseAll,
+		makeDefaultErrorFormatter,
+		defaultErrorFormatter,
+	};
 }
 
-type N = typeof N;
 declare namespace N {
 	type Source = string;
-	type Parser<T, E> = G.Parser<Source, T, E>;
-	type BuiltParser<T, E> = G.BuiltParser<Source, T, E>;
-	type TokenError<C> = G.TokenError<Source, C>;
-	type EofError = G.EofError<Source>;
-	type ValidationError<V> = G.ValidationError<Source, V>;
-	type SeqOf<P> = G.SeqOf<P>;
-	type OneOf<P> = G.OneOf<P>;
-	type Validator<T, U, V> = G.Validator<T, U, V>;
-	type ErrorFormatter<E> = G.ErrorFormatter<E>;
 
-	type SymbolError = {
+	export type PartialParser<T, E> = G.PartialParser<Source, T, E>;
+	export type Parser<T, E> = G.Parser<Source, T, E>;
+
+	export type TokenError<C> = G.TokenError<Source, C>;
+	export type EofError = G.EofError<Source>;
+	export type ValidationError<V> = G.ValidationError<Source, V>;
+
+	export type SymbolError = {
 		type: 'symbol';
 		source: Source;
 		start: number;
 		symbol: string;
 	};
-	type RegexpError = {
+	export type RegexpError = {
 		type: 'regexp';
 		source: Source;
 		start: number;
 		regexp: RegExp;
 	};
 
-	type Join<P, F> = SeqOf<P> extends Parser<infer T, infer E> ? Parser<T, E | F> : never;
+	export type Validator<T, U, V> = G.Validator<T, U, V>;
+	export type ErrorFormatter<E> = G.ErrorFormatter<E>;
 
-	const succeed: <T>(value: T) => Parser<T, never>;
-	const fail: <E>(error: E) => Parser<never, E>;
-	const map: <T, U, E>(parser: Parser<T, E>, fn: (value: T) => U) => Parser<U, E>;
-	const mapError: <T, E, F>(parser: Parser<T, E>, fn: (error: E) => F) => Parser<T, F>;
-	const seqOf: <P extends readonly Parser<any, any>[]>(parsers: readonly [...P]) => SeqOf<P>;
-	const oneOf: <P extends readonly Parser<any, any>[]>(parsers: readonly [...P]) => OneOf<P>;
-	const validate: <T, U, E, V>(parser: Parser<T, E>, validator: Validator<T, U, V>)
-		=> Parser<U, E | ValidationError<V>>;
-	const symbol: <S extends string>(s: S) => Parser<S, TokenError<SymbolError>>;
+	type SeqOf<P> = G.SeqOf<P>;
+	type OneOf<P> = G.OneOf<P>;
+	type Join<P, F> = SeqOf<P> extends PartialParser<infer T, infer E> ? PartialParser<T, E | F> : never;
+
+	const succeed: <T>(value: T) => PartialParser<T, never>;
+	const fail: <E>(error: E) => PartialParser<never, E>;
+	const map: <T, U, E>(parser: PartialParser<T, E>, fn: (value: T) => U) => PartialParser<U, E>;
+	const mapError: <T, E, F>(parser: PartialParser<T, E>, fn: (error: E) => F) => PartialParser<T, F>;
+	const seqOf: <P extends readonly PartialParser<any, any>[]>(parsers: readonly [...P]) => SeqOf<P>;
+	const oneOf: <P extends readonly PartialParser<any, any>[]>(parsers: readonly [...P]) => OneOf<P>;
+	const validate: <T, U, E, V>(parser: PartialParser<T, E>, validator: Validator<T, U, V>)
+		=> PartialParser<U, E | ValidationError<V>>;
+	const symbol: <S extends string>(s: S) => PartialParser<S, TokenError<SymbolError>>;
 	const regexp: <T = string>(name: string, re: RegExp, fn?: (...captures: string[]) => T)
-		=> Parser<T, TokenError<RegexpError>>;
-	const spacing: Parser<string, never>;
-	const spaces: Parser<string, TokenError<RegexpError>>;
-	const natural: Parser<number, TokenError<RegexpError>>;
-	const integer: Parser<number, TokenError<RegexpError>>;
-	const number: Parser<number, TokenError<RegexpError>>;
-	const boolean: Parser<boolean, TokenError<RegexpError>>;
-	const text: Parser<string, TokenError<RegexpError>>;
-	const margin: <T, E>(parser: Parser<T, E>) => Parser<T, E>;
-	const group: <T, E, F, G>(parser: Parser<T, E>, begin: Parser<unknown, F>, end: Parser<unknown, G>)
-		=> Parser<T, E | F | G>;
-	const parens: <T, E>(parser: Parser<T, E>) => Parser<T, E | TokenError<SymbolError | RegexpError>>;
-	const braces: <T, E>(parser: Parser<T, E>) => Parser<T, E | TokenError<SymbolError | RegexpError>>;
-	const brackets: <T, E>(parser: Parser<T, E>) => Parser<T, E | TokenError<SymbolError | RegexpError>>;
-	const endWith: <T, E>(parser: Parser<T, E>) => Parser<T, E | EofError>;
-	const withDefault: <T, E>(parser: Parser<T, E>, value: T) => Parser<T, E>;
-	const chain: <T>(item: Parser<T, unknown>, delimiter: Parser<unknown, unknown>) => Parser<T[], never>;
-	const chain1: <T, E>(item: Parser<T, E>, delimiter: Parser<unknown, unknown>) => Parser<T[], E>;
-	const join: <P extends readonly Parser<any, any>[], F>(items: readonly [...P], delimiter: Parser<unknown, F>)
+		=> PartialParser<T, TokenError<RegexpError>>;
+	const spacing: PartialParser<string, never>;
+	const spaces: PartialParser<string, TokenError<RegexpError>>;
+	const natural: PartialParser<number, TokenError<RegexpError>>;
+	const integer: PartialParser<number, TokenError<RegexpError>>;
+	const number: PartialParser<number, TokenError<RegexpError>>;
+	const boolean: PartialParser<boolean, TokenError<RegexpError>>;
+	const text: PartialParser<string, TokenError<RegexpError>>;
+	const margin: <T, E>(parser: PartialParser<T, E>) => PartialParser<T, E>;
+	const group: <T, E, F, G>(parser: PartialParser<T, E>, begin: PartialParser<unknown, F>, end: PartialParser<unknown, G>)
+		=> PartialParser<T, E | F | G>;
+	const parens: <T, E>(parser: PartialParser<T, E>) => PartialParser<T, E | TokenError<SymbolError | RegexpError>>;
+	const braces: <T, E>(parser: PartialParser<T, E>) => PartialParser<T, E | TokenError<SymbolError | RegexpError>>;
+	const brackets: <T, E>(parser: PartialParser<T, E>) => PartialParser<T, E | TokenError<SymbolError | RegexpError>>;
+	const endWith: <T, E>(parser: PartialParser<T, E>) => PartialParser<T, E | EofError>;
+	const withDefault: <T, E>(parser: PartialParser<T, E>, value: T) => PartialParser<T, E>;
+	const chain: <T>(item: PartialParser<T, unknown>, delimiter: PartialParser<unknown, unknown>) => PartialParser<T[], never>;
+	const chain1: <T, E>(item: PartialParser<T, E>, delimiter: PartialParser<unknown, unknown>) => PartialParser<T[], E>;
+	const join: <P extends readonly PartialParser<any, any>[], F>(items: readonly [...P], delimiter: PartialParser<unknown, F>)
 		=> Join<P, F>;
-	const list: <T>(parser: Parser<T, unknown>) => Parser<T[], never>;
-	const tuple: <P extends readonly Parser<any, any>[]>(parsers: readonly [...P]) => Join<P, TokenError<RegexpError>>;
-	const make: <T, E>(parser: Parser<T, E>) => BuiltParser<T, E>;
-	const parse: <T, E>(source: Source, parser: BuiltParser<T, E>, errorFormatter?: ErrorFormatter<E>) => T;
+	const list: <T>(parser: PartialParser<T, unknown>) => PartialParser<T[], never>;
+	const tuple: <P extends readonly PartialParser<any, any>[]>(parsers: readonly [...P]) => Join<P, TokenError<RegexpError>>;
+	const make: <T, E>(parser: PartialParser<T, E>) => Parser<T, E>;
+	const parse: <T, E>(source: Source, parser: Parser<T, E>, errorFormatter?: ErrorFormatter<E>) => T;
 	const defaultTokenErrorFormatter: ErrorFormatter<unknown>;
 	const makeDefaultErrorFormatter: (validationErrorFormatter: ErrorFormatter<unknown>) => ErrorFormatter<unknown>;
 	const defaultErrorFormatter: ErrorFormatter<unknown>;
+
+	export {
+		succeed,
+		fail,
+		map,
+		mapError,
+		seqOf,
+		oneOf,
+		validate,
+		symbol,
+		regexp,
+		spacing,
+		spaces,
+		natural,
+		integer,
+		number,
+		boolean,
+		text,
+		margin,
+		group,
+		parens,
+		braces,
+		brackets,
+		endWith,
+		withDefault,
+		chain,
+		chain1,
+		join,
+		list,
+		tuple,
+		make,
+		parse,
+		defaultTokenErrorFormatter,
+		makeDefaultErrorFormatter,
+		defaultErrorFormatter,
+	};
 }
 
-type M = typeof M;
 declare namespace M {
-	type Data = { meta: Metadata; };
-	type Metadata = { [key: string]: string | true; };
+	export type Meta = { [key: string]: string | true; };
 
-	type Parser<T, E> = (meta: Metadata) => R.Result<O.Option<T>, E>;
+	export type Parser<T, E> = (meta: Meta) => R.Result<O.Option<T>, E>;
+	export type MetaParser<T> = (meta: Meta) => T;
+	export type AttrParser<T, C> = (source: string) => R.Result<T, C>;
 
-	type NotationError = {
+	export type NotationError = {
 		type: 'notation';
 		expected: 'flag' | 'attr';
 		name: string;
 		value: string | true;
 	};
-	type AttributeError<C> = {
+	export type AttributeError<C> = {
 		type: 'attribute';
 		name: string;
 		source: string;
 		cause: C;
 	};
 
-	type AttrParser<T, C> = (source: string) => R.Result<T, C>;
+	export type Archetype = Parser<any, any> | readonly [Archetype, ...Archetype[]] | { [key: string]: Archetype; };
+	export type ErrorFormatter<E> = (error: E) => string;
+
 	type OneOf<P> = OneOfRec<P, never, never>;
 	type OneOfRec<P, T, E> = P extends readonly [Parser<infer U, infer F>, ...infer Rest]
 		? OneOfRec<Rest, T | U, E | F>
 		: Parser<T, E>;
-	type Archetype = Parser<any, any> | readonly [Archetype, ...Archetype[]] | { [key: string]: Archetype; };
 	type Make<A> = Parser<MakeValue<A>, MakeError<A>>;
 	type MakeValue<A> =
 		A extends Parser<infer T, any> ? T :
@@ -488,12 +602,10 @@ declare namespace M {
 		A extends Parser<any, infer E> ? E :
 		A extends readonly [infer F, ...infer R] ? MakeError<F> | MakeError<R> :
 		A extends { [key: string]: Archetype; } ? MakeError<A[keyof A]> : never;
-	type Meta<T> = (meta: Metadata) => T;
-	type ErrorFormatter<E> = (error: E) => string;
 
 	const flag: (name: string) => Parser<boolean, NotationError>;
 	const attr: <T, C>(name: string, parser: AttrParser<T, C>) => Parser<T, NotationError | AttributeError<C>>;
-	const attrN: <T, C>(name: string, parser: N.Parser<T, C>) => Parser<T, NotationError | AttributeError<C>>;
+	const attrN: <T, C>(name: string, parser: N.PartialParser<T, C>) => Parser<T, NotationError | AttributeError<C>>;
 	const succeed: <T>(value: T) => Parser<T, never>;
 	const miss: () => Parser<never, never>;
 	const fail: <E>(error: E) => Parser<never, E>;
@@ -504,23 +616,42 @@ declare namespace M {
 	const withDefault: <T, E>(parser: Parser<T, E>, value: T) => Parser<T, E>;
 	const oneOf: <P extends readonly Parser<any, any>[]>(parsers: readonly [...P]) => OneOf<P>;
 	const make: <A extends Archetype>(archetype: A) => Make<A>;
-	const parse: <T, E>(meta: Metadata, parser: Parser<T, E>, errorFormatter?: ErrorFormatter<E>) => T;
-	const meta: <T, E>(parser: Parser<T, E>, errorFormatter?: ErrorFormatter<E>) => Meta<T>;
+	const parse: <T, E>(meta: Meta, parser: Parser<T, E>, errorFormatter?: ErrorFormatter<E>) => T;
+	const meta: <T, E>(parser: Parser<T, E>, errorFormatter?: ErrorFormatter<E>) => MetaParser<T>;
 	const makeDefaultErrorFormatter: (attributeErrorFormatter: ErrorFormatter<unknown>) => ErrorFormatter<unknown>;
 	const defaultErrorFormatter: ErrorFormatter<unknown>;
+
+	export {
+		flag,
+		attr,
+		attrN,
+		succeed,
+		miss,
+		fail,
+		andThen,
+		orElse,
+		map,
+		mapError,
+		withDefault,
+		oneOf,
+		make,
+		parse,
+		meta,
+		makeDefaultErrorFormatter,
+		defaultErrorFormatter,
+	};
 }
 
-type Z = typeof Z;
 declare namespace Z {
-	type Define<T, D extends Partial<T>> = (base: (this_: T) => T) => D & ThisType<T>;
-	type ExtProp<T> = {
+	export type Define<T, D extends Partial<T>> = (base: (this_: T) => T) => D & ThisType<T>;
+	export type ExtProp<T> = {
 		get: (owner: unknown) => T;
 		set: (owner: unknown, value: T) => void;
 	};
-	type WeakExtProp<T> = ExtProp<T> & { delete: (owner: unknown) => void; };
-	type FullExtProp<T> = WeakExtProp<T> & { clear: () => void; };
-	type Swapper<K extends string> = <O extends { [P in K]: any }, R>(owner: O, value: O[K], block: () => R) => R;
-	type Context<T> = {
+	export type WeakExtProp<T> = ExtProp<T> & { delete: (owner: unknown) => void; };
+	export type FullExtProp<T> = WeakExtProp<T> & { clear: () => void; };
+	export type Swapper<K extends string> = <O extends { [P in K]: any }, R>(owner: O, value: O[K], block: () => R) => R;
+	export type Context<T> = {
 		enter<R>(owner: unknown, value: T, block: () => R): R;
 		value(owner: unknown): T;
 		exists(owner: unknown): boolean;
@@ -535,13 +666,8 @@ declare namespace Z {
 	const context: <T>(defaultValue: T) => Context<T>;
 	const defer: (cleanup: () => void) => <R>(block: () => R) => R;
 	const enclose: <R>(begin: () => void, end: () => void, block: () => R) => R;
-}
 
-declare global {
-	type Fs = typeof Fs;
-	namespace Fs {
-		export { O, R, L, S, U, G, E, P, N, M, Z };
-	}
+	export { pluginName, redef, extProp, extend, swapper, context, defer, enclose };
 }
 
 export { };

@@ -3,7 +3,7 @@ import Fs from "./Fs";
 
 const { O, R, S, U, G } = Fs;
 
-const parse = <S, T, E>(source: S, parser: Fs.G.Parser<S, T, E>) => G.make(parser)(source);
+const parse = <S, T, E>(source: S, parser: Fs.G.PartialParser<S, T, E>) => G.make(parser)(source);
 
 const tokenError = (position: number, name: string) => ({ type: 'token' as const, context: { position }, name });
 const eofError = (position: number) => ({ type: 'eof' as const, context: { position } });

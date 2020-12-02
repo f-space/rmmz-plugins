@@ -3,7 +3,7 @@ import Fs from "./Fs";
 
 const { O, R, N, M } = Fs;
 
-const parse = <A extends Fs.M.Archetype>(meta: Fs.M.Metadata, parser: A) => M.make(parser)(meta);
+const parse = <A extends Fs.M.Archetype>(meta: Fs.M.Meta, parser: A) => M.make(parser)(meta);
 
 const notationError = (expected: 'flag' | 'attr', name: string, value: string | true) =>
 	({ type: 'notation' as const, expected, name, value });

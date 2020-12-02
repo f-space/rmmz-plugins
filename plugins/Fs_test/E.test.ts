@@ -4,7 +4,7 @@ import Fs from "./Fs";
 const { R, E } = Fs;
 
 describe("tokenize", () => {
-	type Token = Fs.E.Token;
+	type AnyToken = Fs.E.AnyToken;
 	type TokenType = Fs.E.TokenType;
 
 	const tokenize = E.tokenize;
@@ -15,7 +15,7 @@ describe("tokenize", () => {
 		const { tokens } = types.reduce(({ tokens, start }, type) => {
 			const end = start + type.length;
 			return { tokens: [...tokens, token(type, start, end)], start: end };
-		}, { tokens: [] as Token[], start: 0 });
+		}, { tokens: [] as AnyToken[], start: 0 });
 		return tokens;
 	};
 	const num = (start: number, end: number) => token('number', start, end);
@@ -102,11 +102,11 @@ describe("tokenize", () => {
 });
 
 describe("parse", () => {
-	type Token = Fs.E.Token;
+	type AnyToken = Fs.E.AnyToken;
 	type ExpressionNode = Fs.E.ExpressionNode;
 	type IdentifierNode = Fs.E.IdentifierNode;
 
-	type ReplaceToken<T> = { [P in keyof T]: T[P] extends Token ? string : ReplaceToken<T[P]> };
+	type ReplaceToken<T> = { [P in keyof T]: T[P] extends AnyToken ? string : ReplaceToken<T[P]> };
 	type Node = ReplaceToken<ExpressionNode>;
 	type Identifier = ReplaceToken<IdentifierNode>;
 
