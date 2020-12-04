@@ -2,23 +2,19 @@ import Fs from "./Fs";
 
 const { L } = Fs;
 
-type Cons<T> = Fs.L.Cons<T>;
-
 test("basics", () => {
-	type C = Cons<number>;
-
 	expect(L.empty(L.nil())).toBe(true);
 	expect(L.empty(L.cons(42, L.nil()))).toBe(false);
 	expect(L.empty(L.singleton(42))).toBe(false);
 	expect(L.head(L.singleton(42))).toBe(42);
 	expect(L.empty(L.tail(L.singleton(42)))).toBe(true);
-	expect(L.head(L.tail(L.tail(L.cons(1, L.cons(2, L.cons(3, L.nil())))) as C) as C)).toBe(3);
+	expect(L.head(L.tail(L.tail(L.cons(1, L.cons(2, L.cons(3, L.nil()))) as any) as any) as any)).toBe(3);
 });
 
 test("match", () => {
 	expect(L.match(L.nil(), () => -1, x => x)).toBe(-1);
 	expect(L.match(L.cons(42, L.nil()), () => -1, x => x)).toBe(42);
-	expect(L.empty(L.match(L.cons(42, L.nil()), () => L.cons(-1, L.nil()), (_, xs) => xs))).toBe(true);
+	expect(L.match(L.cons(1, L.cons(2, L.nil())), () => L.nil(), (_, xs) => xs)).toEqual(L.cons(2, L.nil()));
 });
 
 test("find", () => {
@@ -46,14 +42,10 @@ test("every", () => {
 });
 
 test("reverse", () => {
-	type C = Cons<number>;
-
-	const list = L.cons(1, L.cons(2, L.cons(3, L.nil())));
-	expect(L.head(L.reverse(list) as C)).toBe(3);
-	expect(L.head(L.tail(L.reverse(list) as C) as C)).toBe(2);
-	expect(L.head(L.tail(L.tail(L.reverse(list) as C) as C) as C)).toBe(1);
-	expect(L.empty(L.tail(L.tail(L.tail(L.reverse(list) as C) as C) as C))).toBe(true);
-	expect(L.empty(L.reverse(L.nil()))).toBe(true);
+	const input = L.cons(1, L.cons(2, L.cons(3, L.nil())));
+	const output = L.cons(3, L.cons(2, L.cons(1, L.nil())));
+	expect(L.reverse(input)).toEqual(output);
+	expect(L.reverse(L.nil())).toEqual(L.nil());
 });
 
 test("reduce", () => {
@@ -71,14 +63,10 @@ test("reduceRight", () => {
 });
 
 test("map", () => {
-	type C = Cons<number>;
-
-	const list = L.cons(1, L.cons(2, L.cons(3, L.nil())));
-	expect(L.head(L.map(list, (x: number) => x * 10) as C)).toBe(10);
-	expect(L.head(L.tail(L.map(list, (x: number) => x * 10) as C) as C)).toBe(20);
-	expect(L.head(L.tail(L.tail(L.map(list, (x: number) => x * 10) as C) as C) as C)).toBe(30);
-	expect(L.empty(L.tail(L.tail(L.tail(L.map(list, (x: number) => x * 10) as C) as C) as C))).toBe(true);
-	expect(L.empty(L.map(L.nil(), (x: number) => x * 10))).toBe(true);
+	const input = L.cons(1, L.cons(2, L.cons(3, L.nil())));
+	const output = L.cons("1", L.cons("2", L.cons("3", L.nil())));
+	expect(L.map(input, String)).toEqual(output);
+	expect(L.map(L.nil(), String)).toEqual(L.nil());
 });
 
 test("toArray", () => {

@@ -2,8 +2,6 @@ import Fs from "./Fs";
 
 const { O } = Fs;
 
-type Some<T> = Fs.O.Some<T>;
-
 test("basics", () => {
 	expect(O.isSome(O.some(42))).toBe(true);
 	expect(O.isSome(O.none())).toBe(false);
@@ -16,16 +14,16 @@ test("basics", () => {
 });
 
 test("andThen", () => {
-	expect(O.unwrap(O.andThen(O.some(42), x => O.some(x)) as Some<number>)).toBe(42);
-	expect(O.isNone(O.andThen(O.some(42), () => O.none()))).toBe(true);
-	expect(O.isNone(O.andThen(O.none(), x => O.some(x)))).toBe(true);
-	expect(O.unwrap(O.andThen(O.some(O.some(42)), x => x) as Some<number>)).toBe(42);
+	expect(O.andThen(O.some(42), x => O.some(x))).toEqual(O.some(42));
+	expect(O.andThen(O.some(42), () => O.none())).toEqual(O.none());
+	expect(O.andThen(O.none(), x => O.some(x))).toEqual(O.none());
+	expect(O.andThen(O.some(O.some(42)), x => x)).toEqual(O.some(42));
 });
 
 test("orElse", () => {
-	expect(O.unwrap(O.orElse(O.none(), () => O.some(42)) as Some<number>)).toBe(42);
-	expect(O.isNone(O.orElse(O.none(), () => O.none()))).toBe(true);
-	expect(O.unwrap(O.orElse(O.some(42), () => O.none()) as Some<number>)).toBe(42);
+	expect(O.orElse(O.none(), () => O.some(42))).toEqual(O.some(42));
+	expect(O.orElse(O.none(), () => O.none())).toEqual(O.none());
+	expect(O.orElse(O.some(42), () => O.none())).toEqual(O.some(42));
 });
 
 test("match", () => {
@@ -44,8 +42,8 @@ test("withDefault", () => {
 });
 
 test("map", () => {
-	expect(O.unwrap(O.map(O.some(42), (x: number) => x * 10) as Some<number>)).toBe(420);
-	expect(O.isNone(O.map(O.none(), (x: number) => x * 10))).toBe(true);
+	expect(O.map(O.some(42), String)).toEqual(O.some("42"));
+	expect(O.map(O.none(), String)).toEqual(O.none());
 });
 
 test("zip", () => {
