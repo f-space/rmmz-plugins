@@ -359,10 +359,10 @@ declare namespace E {
 	const build: (source: string, node: ExpressionNode) => Evaluator;
 	const compile: (source: string) => CompilationResult;
 	const expect: (result: CompilationResult, errorFormatter?: ParseErrorFormatter) => Evaluator;
-	const run: (evaluator: Evaluator, args: object, errorFormatter?: RuntimeErrorFormatter) => number;
+	const run: (evaluator: Evaluator, env: object, errorFormatter?: RuntimeErrorFormatter) => number;
 	const interpret: (
 		source: string,
-		args: object,
+		env: object,
 		parseErrorFormatter?: ParseErrorFormatter,
 		runtimeErrorFormatter?: RuntimeErrorFormatter,
 	) => number;

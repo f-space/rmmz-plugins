@@ -229,7 +229,7 @@ describe("parse", () => {
 });
 
 describe("build", () => {
-	const eval_ = (source: string, args: object) => E.build(source, R.unwrap(E.parse(E.tokenize(source)) as any))(args);
+	const eval_ = (source: string, env: object) => E.build(source, R.unwrap(E.parse(E.tokenize(source)) as any))(env);
 
 	const referenceError = (name: string) => ({ type: 'reference' as const, name });
 	const propertyError = (property: string) => ({ type: 'property' as const, property });
