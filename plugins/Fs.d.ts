@@ -350,7 +350,7 @@ declare namespace E {
 
 	export type CompilationError = { source: string, error: ParseError; };
 	export type CompilationResult = R.Result<Evaluator, CompilationError>;
-	export type Evaluator = (args: object) => R.Result<number, RuntimeError>;
+	export type Evaluator = (env: object) => R.Result<number, RuntimeError>;
 	export type ParseErrorFormatter = (source: string, error: ParseError) => string;
 	export type RuntimeErrorFormatter = (error: RuntimeError) => string;
 
