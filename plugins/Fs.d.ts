@@ -26,7 +26,7 @@ declare namespace O {
 	const isSome: <T>(option: Option<T>) => option is Some<T>;
 	const isNone: (option: Option<unknown>) => option is None;
 	const andThen: <T, U>(option: Option<T>, fn: (value: T) => Option<U>) => Option<U>;
-	const orElse: <T>(option: Option<T>, fn: () => Option<T>) => Option<T>;
+	const orElse: <T, U>(option: Option<T>, fn: () => Option<U>) => Option<T | U>;
 	const match: <T, P, Q>(option: Option<T>, onSome: (value: T) => P, onNone: () => Q) => P | Q;
 	const expect: <T>(option: Option<T>, formatter: () => string) => T;
 	const withDefault: <T>(option: Option<T>, value: T) => T;
@@ -59,8 +59,8 @@ declare namespace R {
 	const unwrapErr: <E>(result: Err<E>) => E;
 	const isOk: <T>(result: Result<T, unknown>) => result is Ok<T>;
 	const isErr: <E>(result: Result<unknown, E>) => result is Err<E>;
-	const andThen: <T, U, E>(result: Result<T, E>, fn: (value: T) => Result<U, E>) => Result<U, E>;
-	const orElse: <T, E, F>(result: Result<T, E>, fn: (error: E) => Result<T, F>) => Result<T, F>;
+	const andThen: <T, U, E, F>(result: Result<T, E>, fn: (value: T) => Result<U, F>) => Result<U, E | F>;
+	const orElse: <T, U, E, F>(result: Result<T, E>, fn: (error: E) => Result<U, F>) => Result<T | U, F>;
 	const match: <T, E, P, Q>(result: Result<T, E>, onOk: (value: T) => P, onErr: (error: E) => Q) => P | Q;
 	const expect: <T, E>(result: Result<T, E>, formatter: (error: E) => string) => T;
 	const attempt: <T>(fn: () => T) => Result<T, unknown>;
