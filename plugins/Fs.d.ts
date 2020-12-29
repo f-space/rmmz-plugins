@@ -144,11 +144,6 @@ declare namespace G {
 		type: 'eof';
 		context: Context<S>;
 	};
-	export type PathError<S, E extends any[]> = {
-		type: 'path';
-		context: Context<S>;
-		errors: E;
-	};
 	export type AndError<S, E> = {
 		type: 'and';
 		context: Context<S>;
@@ -175,7 +170,7 @@ declare namespace G {
 	type OneOfRec<P, S, T, E extends any[]> =
 		P extends readonly [PartialParser<infer R, infer U, infer F>, ...infer Rest]
 		? OneOfRec<Rest, S & R, T | U, [...E, F]>
-		: PartialParser<S, T, IncludesNever<E> extends true ? never : PathError<S, E>>;
+		: PartialParser<S, T, IncludesNever<E> extends true ? never : E>;
 	export type Validator<T, U, V> = (value: T) => R.Result<U, V>;
 	export type ErrorFormatter<E> = (error: E) => string;
 

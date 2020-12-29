@@ -308,7 +308,6 @@
 	const G = (() => {
 		const tokenError = ({ cache, ...context }, name, cause) => ({ type: 'token', context, name, cause });
 		const eofError = ({ cache, ...context }) => ({ type: 'eof', context });
-		const pathError = ({ cache, ...context }, errors) => ({ type: 'path', context, errors });
 		const andError = ({ cache, ...context }, error) => ({ type: 'and', context, error });
 		const notError = ({ cache, ...context }, value) => ({ type: 'not', context, value });
 		const validationError = ({ cache, ...context }, cause) => ({ type: 'validation', context, cause });
@@ -335,7 +334,6 @@
 			context => R.match(cond(context), ([value, context]) => then(value)(context), error => else_(error)(context));
 		const map = (parser, fn) => context => R.map(parser(context), ([value, context]) => [fn(value), context]);
 		const mapError = (parser, fn) => context => R.mapErr(parser(context), fn);
-		const wrapError = (parser, fn) => context => mapError(parser, error => fn(context, error))(context);
 		const fromResult = result => R.match(result, succeed, fail);
 
 		const sequence = (a, b) => andThen(a, v1 => map(b, v2 => L.cons(v2, v1)));
@@ -344,7 +342,7 @@
 		const toArray = list => L.toArray(L.reverse(list));
 
 		const seqOf = parsers => map(parsers.reduce(sequence, succeed(L.nil())), toArray);
-		const oneOf = parsers => wrapError(mapError(parsers.reduce(choice, fail(L.nil())), toArray), pathError);
+		const oneOf = parsers => mapError(parsers.reduce(choice, fail(L.nil())), toArray);
 		const optional = parser => choice(map(parser, O.some), succeed(O.none()));
 		const many = parser => map(loop(parser, L.nil()), toArray);
 		const many1 = parser => map(andThen(parser, value => loop(parser, L.singleton(value))), toArray);
@@ -380,29 +378,26 @@
 
 		const parse = (source, parser, errorFormatter = defaultErrorFormatter) => R.expect(parser(source), errorFormatter);
 
-		const makeDefaultErrorFormatter = (tokenErrorFormatter, validationErrorFormatter) => {
-			const formatter = error => {
-				const dots = s => S.ellipsis(s, 32);
-				const rest = ({ source: s, position: i }) => typeof s == 'string' ? dots(s.slice(i)) : S.debug(s[i]);
-				const pathErrorFormatter = error => {
-					const pick = e => e.errors.length !== 0 ? select(e.errors) : e;
-					const select = errors => longest(errors.map(e => e.type === 'path' ? pick(e) : e));
-					const longest = errors => errors.reduce((a, b) => position(a) >= position(b) ? a : b);
-					const position = error => error.context.position;
-					const message = error => error.type !== 'path' ? formatter(error) : "Dead end.";
-					return message(pick(error));
-				};
+		const makeDefaultErrorFormatter = (tokenErrorFormatter, validationErrorFormatter) => error => {
+			const dots = s => S.ellipsis(s, 32);
+			const rest = ({ source: s, position: i }) => typeof s == 'string' ? dots(s.slice(i)) : S.debug(s[i]);
+			const pick = error => {
+				const reduce = errors => errors.reduce((acc, e) => choice(acc, pick(e)), undefined);
+				const choice = (a, b) => priority(a) >= priority(b) ? a : b;
+				const priority = e => e?.context.position ?? -Infinity;
+				return Array.isArray(error) ? reduce(error) : error;
+			};
+			const message = error => {
 				switch (error?.type) {
 					case 'token': return `Failed to parse '${error.name}' token <<< ${tokenErrorFormatter(error.cause)}`;
 					case 'eof': return `Excessive token exists: ${rest(error.context)}`;
-					case 'path': return `No valid path exists. <<< ${pathErrorFormatter(error)}`;
 					case 'and': return `And-predicate failed: ${rest(error.context)}`;
 					case 'not': return `Not-predicate failed: ${rest(error.context)}`;
 					case 'validation': return `Validation failed <<< ${validationErrorFormatter(error.cause)}`;
 					default: return `Unknown error: ${S.debug(error)}`;
 				}
 			};
-			return formatter;
+			return message(pick(error));
 		};
 
 		const defaultErrorFormatter = makeDefaultErrorFormatter(S.debug, S.debug);

@@ -3,11 +3,12 @@ import Fs from "./Fs";
 
 const { O, R, S, U, G } = Fs;
 
-const parse = <S, T, E>(source: S, parser: Fs.G.PartialParser<S, T, E>) => G.make(parser)(source);
+type PartialParser<S, T, E> = Fs.G.PartialParser<S, T, E>;
+
+const parse = <S, T, E>(source: S, parser: PartialParser<S, T, E>) => G.make(parser)(source);
 
 const tokenError = (position: number, name: string) => ({ type: 'token' as const, context: { position }, name });
 const eofError = (position: number) => ({ type: 'eof' as const, context: { position } });
-const pathError = <E extends any[]>(position: number, errors: [...E]) => ({ type: 'path' as const, context: { position }, errors });
 const andError = <E>(position: number, error: E) => ({ type: 'and' as const, context: { position }, error });
 const notError = <T>(position: number, value: T) => ({ type: 'not' as const, context: { position }, value });
 const validationError = <C>(position: number, cause: C) => ({ type: 'validation' as const, context: { position }, cause });
@@ -86,7 +87,7 @@ test("seqOf", () => {
 test("oneOf", () => {
 	expect(parse("c", G.oneOf([char("a"), char("b"), char("c")]))).toEqualOk("c");
 	expect(parse("d", G.oneOf([char("a"), char("b"), char("c")]))).toMatchErr(
-		pathError(0, [tokenError(0, "a"), tokenError(0, "b"), tokenError(0, "c")])
+		[tokenError(0, "a"), tokenError(0, "b"), tokenError(0, "c")]
 	);
 });
 
