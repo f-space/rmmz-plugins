@@ -366,8 +366,20 @@ declare namespace E {
 		parseErrorFormatter?: ParseErrorFormatter,
 		runtimeErrorFormatter?: RuntimeErrorFormatter,
 	) => number;
+	const defaultParseErrorFormatter: ParseErrorFormatter;
+	const defaultRuntimeErrorFormatter: RuntimeErrorFormatter;
 
-	export { tokenize, parse, build, compile, expect, run, interpret };
+	export {
+		tokenize,
+		parse,
+		build,
+		compile,
+		expect,
+		run,
+		interpret,
+		defaultParseErrorFormatter,
+		defaultRuntimeErrorFormatter,
+	};
 }
 
 declare namespace P {
