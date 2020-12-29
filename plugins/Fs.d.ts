@@ -348,25 +348,25 @@ declare namespace E {
 		| TypeError
 		| SecurityError;
 
-	export type CompilationError = { source: string, error: ParseError; };
-	export type CompilationResult = R.Result<Evaluator, CompilationError>;
+	export type CompileError = { source: string, error: ParseError; };
+	export type CompileResult = R.Result<Evaluator, CompileError>;
 	export type Evaluator = (env: object) => R.Result<number, RuntimeError>;
-	export type ParseErrorFormatter = (error: CompilationError) => string;
+	export type CompileErrorFormatter = (error: CompileError) => string;
 	export type RuntimeErrorFormatter = (error: RuntimeError) => string;
 
 	const tokenize: (source: string) => AnyToken[];
 	const parse: (source: readonly AnyToken[]) => R.Result<ExpressionNode, ParseError>;
 	const build: (source: string, node: ExpressionNode) => Evaluator;
-	const compile: (source: string) => CompilationResult;
-	const expect: (result: CompilationResult, errorFormatter?: ParseErrorFormatter) => Evaluator;
+	const compile: (source: string) => CompileResult;
+	const expect: (result: CompileResult, errorFormatter?: CompileErrorFormatter) => Evaluator;
 	const run: (evaluator: Evaluator, env: object, errorFormatter?: RuntimeErrorFormatter) => number;
 	const interpret: (
 		source: string,
 		env: object,
-		parseErrorFormatter?: ParseErrorFormatter,
+		compileErrorFormatter?: CompileErrorFormatter,
 		runtimeErrorFormatter?: RuntimeErrorFormatter,
 	) => number;
-	const defaultParseErrorFormatter: ParseErrorFormatter;
+	const defaultCompileErrorFormatter: CompileErrorFormatter;
 	const defaultRuntimeErrorFormatter: RuntimeErrorFormatter;
 
 	export {
@@ -377,7 +377,7 @@ declare namespace E {
 		expect,
 		run,
 		interpret,
-		defaultParseErrorFormatter,
+		defaultCompileErrorFormatter,
 		defaultRuntimeErrorFormatter,
 	};
 }
