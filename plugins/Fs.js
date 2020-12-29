@@ -774,7 +774,7 @@
 		};
 
 		const expect = (result, errorFormatter = defaultParseErrorFormatter) =>
-			R.expect(result, ({ source, error }) => errorFormatter(source, error));
+			R.expect(result, errorFormatter);
 
 		const run = (evaluator, env, errorFormatter = defaultRuntimeErrorFormatter) =>
 			R.expect(evaluator(env), errorFormatter);
@@ -782,7 +782,7 @@
 		const interpret = (source, env, parseErrorFormatter, runtimeErrorFormatter) =>
 			run(expect(compile(source), parseErrorFormatter), env, runtimeErrorFormatter);
 
-		const defaultParseErrorFormatter = (source, error) => {
+		const defaultParseErrorFormatter = ({ source, error }) => {
 			const restore = (source, token) => source.slice(token.start, token.end);
 			const formatTokenError = (source, error) => {
 				const { name, cause } = error;
