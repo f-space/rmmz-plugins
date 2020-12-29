@@ -352,7 +352,7 @@ declare namespace E {
 	export type CompilationResult = R.Result<Evaluator, CompilationError>;
 	export type Evaluator = (args: object) => R.Result<number, RuntimeError>;
 	export type ParseErrorFormatter = (source: string, error: ParseError) => string;
-	export type RuntimeErrorFormatter = (error: RuntimeErrorFormatter) => string;
+	export type RuntimeErrorFormatter = (error: RuntimeError) => string;
 
 	const tokenize: (source: string) => AnyToken[];
 	const parse: (source: readonly AnyToken[]) => R.Result<ExpressionNode, ParseError>;
