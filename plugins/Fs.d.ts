@@ -313,8 +313,16 @@ declare namespace E {
 		| BinaryOperatorNode
 		| ConditionalOperatorNode;
 
-	export type ParseError = G.TokenError<string, AnyToken | null> | G.EofError<string>;
+	export type ParseError = TokenError | EofError;
+	export type TokenError = G.TokenError<string, AnyToken | null>;
+	export type EofError = G.EofError<string>;
 
+	export type RuntimeError =
+		| ReferenceError
+		| PropertyError
+		| RangeError
+		| TypeError
+		| SecurityError;
 	export type ReferenceError = {
 		type: 'reference';
 		name: string;
@@ -336,12 +344,6 @@ declare namespace E {
 		type: 'security';
 		target: string;
 	};
-	export type RuntimeError =
-		| ReferenceError
-		| PropertyError
-		| RangeError
-		| TypeError
-		| SecurityError;
 
 	export type CompileError = { source: string, error: ParseError; };
 	export type CompileResult = R.Result<Evaluator, CompileError>;
