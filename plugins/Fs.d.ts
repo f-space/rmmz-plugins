@@ -212,9 +212,9 @@ declare namespace G {
 	const memo: <S, T, E>(parser: PartialParser<S, T, E>) => PartialParser<S, T, E>;
 	const make: <S, T, E>(parser: PartialParser<S, T, E>, options?: ParseOptions) => Parser<S, T, E>;
 	const parse: <S extends Source, T, E>(source: S, parser: Parser<S, T, E>, errorFormatter?: ErrorFormatter<E>) => T;
-	const makeDefaultErrorFormatter: (
-		tokenErrorFormatter: ErrorFormatter<unknown>,
-		validationErrorFormatter: ErrorFormatter<unknown>,
+	const makeDefaultErrorFormatter: <C, V>(
+		tokenErrorFormatter: ErrorFormatter<C>,
+		validationErrorFormatter: ErrorFormatter<V>,
 	) => ErrorFormatter<unknown>;
 	const defaultErrorFormatter: ErrorFormatter<unknown>;
 
@@ -442,7 +442,7 @@ declare namespace P {
 		parsers: P,
 		errorFormatter?: ErrorFormatter<P[keyof P] extends Parser<any, infer E> ? E : never>
 	) => { [K in keyof P]: P[K] extends Parser<infer T, any> ? T : never };
-	const makeDefaultErrorFormatter: (validationErrorFormatter: ErrorFormatter<unknown>) => ErrorFormatter<unknown>;
+	const makeDefaultErrorFormatter: <V>(validationErrorFormatter: ErrorFormatter<V>) => ErrorFormatter<unknown>;
 	const defaultErrorFormatter: ErrorFormatter<unknown>;
 
 	export {
@@ -537,7 +537,7 @@ declare namespace N {
 	const make: <T, E>(parser: PartialParser<T, E>) => Parser<T, E>;
 	const parse: <T, E>(source: Source, parser: Parser<T, E>, errorFormatter?: ErrorFormatter<E>) => T;
 	const defaultTokenErrorFormatter: ErrorFormatter<unknown>;
-	const makeDefaultErrorFormatter: (validationErrorFormatter: ErrorFormatter<unknown>) => ErrorFormatter<unknown>;
+	const makeDefaultErrorFormatter: <V>(validationErrorFormatter: ErrorFormatter<V>) => ErrorFormatter<unknown>;
 	const defaultErrorFormatter: ErrorFormatter<unknown>;
 
 	export {
@@ -628,7 +628,7 @@ declare namespace M {
 	const make: <A extends Archetype>(archetype: A) => Make<A>;
 	const parse: <T, E>(meta: Meta, parser: Parser<T, E>, errorFormatter?: ErrorFormatter<E>) => T;
 	const meta: <T, E>(parser: Parser<T, E>, errorFormatter?: ErrorFormatter<E>) => MetaParser<T>;
-	const makeDefaultErrorFormatter: (attributeErrorFormatter: ErrorFormatter<unknown>) => ErrorFormatter<unknown>;
+	const makeDefaultErrorFormatter: <C>(attributeErrorFormatter: ErrorFormatter<C>) => ErrorFormatter<unknown>;
 	const defaultErrorFormatter: ErrorFormatter<unknown>;
 
 	export {
