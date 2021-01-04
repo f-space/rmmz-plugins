@@ -1,9 +1,11 @@
 import "./JestExt";
 import Fs from "./Fs";
 
-const { N } = Fs;
+const { R, N } = Fs;
 
-const parse = <T, E>(source: string, parser: Fs.N.PartialParser<T, E>) => N.make(parser)(source);
+type PartialParser<T, E> = Fs.N.PartialParser<T, E>;
+
+const parse = <T, E>(source: string, parser: PartialParser<T, E>) => N.make(parser)(source);
 
 const tokenError = (position: number, name: string) => ({ type: 'token' as const, context: { position }, name });
 const eofError = (position: number) => ({ type: 'eof' as const, context: { position } });
@@ -139,4 +141,16 @@ test("tuple", () => {
 	expect(parse("Open Sesame !!", password)).toEqualOk(true);
 	expect(parse("Open Barley !!", password)).toMatchErr(tokenError(5, "Sesame"));
 	expect(parse("", password)).toMatchErr(tokenError(0, "Open"));
+});
+
+test("error-message", () => {
+	const error = <T, E>(source: string, parser: PartialParser<T, E>) =>
+		R.mapErr(N.make(parser)(source), N.defaultErrorFormatter);
+
+	expect(error("foo", N.symbol("bar")))
+		.toEqualErr(`Failed to parse 'bar' token <<< 'bar' expected, but "foo" found.`);
+	expect(error("foo", N.boolean))
+		.toEqualErr(`Failed to parse 'boolean' token <<< /^(?:true|false)\\b/ expected, but "foo" found.`);
+	expect(error("", N.symbol("bar")))
+		.toEqualErr(`Failed to parse 'bar' token <<< 'bar' expected, but no more letters found.`);
 });

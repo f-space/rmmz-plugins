@@ -1,9 +1,12 @@
 import "./JestExt";
 import Fs from "./Fs";
 
-const { O, R, N, M } = Fs;
+const { O, R, S, N, M } = Fs;
 
-const parse = <A extends Fs.M.Archetype>(meta: Fs.M.Meta, parser: A) => M.make(parser)(meta);
+type Meta = Fs.M.Meta;
+type Archetype = Fs.M.Archetype;
+
+const parse = <A extends Archetype>(meta: Meta, parser: A) => M.make(parser)(meta);
 
 const notationError = (expected: 'flag' | 'attr', name: string, value: string | true) =>
 	({ type: 'notation' as const, expected, name, value });
@@ -96,4 +99,15 @@ test("meta", () => {
 	const data = { foo: "[42]" };
 	expect(foo(data) === foo(data)).toBe(true);
 	expect(foo(data)).toEqual([42]);
+});
+
+test("error-message", () => {
+	const error = <A extends Archetype>(meta: Meta, parser: A) =>
+		R.mapErr(M.make(parser)(meta), M.makeDefaultErrorFormatter(S.debug));
+
+	expect(error({ foo: "" }, M.flag("foo"))).toEqualErr(`'foo' metadata does not accept any arguments.`);
+	expect(error({ foo: true }, M.attrN("foo", N.integer))).toEqualErr(`'foo' metadata is not a flag.`);
+	expect(error({ foo: "foo" }, M.attr("foo", s => R.err(s))))
+		.toEqualErr(`Failed to parse 'foo' metadata arguments. <<< "foo"`);
+	expect(error({ foo: "foo" }, M.fail("bar"))).toEqualErr(`Unknown error: "bar"`);
 });

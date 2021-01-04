@@ -390,4 +390,20 @@ describe("other", () => {
 		expect(() => E.interpret("", {}, () => "bar")).toThrow(new Error("bar"));
 		expect(() => E.interpret("foo", {}, undefined, () => "bar")).toThrow(new Error("bar"));
 	});
+
+	test("error-message", () => {
+		const compileError = (source: string) => R.mapErr(E.compile(source), E.defaultCompileErrorFormatter);
+		const runtimeError = (source: string, env: object) =>
+			R.andThen(compileError(source), evaluator => R.mapErr(evaluator(env), E.defaultRuntimeErrorFormatter));
+
+		expect(compileError("🐛")).toEqualErr(`'expression' expected, but "🐛" found.`);
+		expect(compileError("")).toEqualErr(`'expression' expected, but no more tokens found.`);
+		expect(compileError("foo bar")).toEqualErr(`Unable to interpret "bar".`);
+
+		expect(runtimeError("foo", {})).toEqualErr(`"foo" not found.`);
+		expect(runtimeError("foo.bar", { foo: {} })).toEqualErr(`"bar" property not exists.`);
+		expect(runtimeError("foo[0]", { foo: [] })).toEqualErr(`0 is out of range.`);
+		expect(runtimeError("foo", { foo: "foo" })).toEqualErr(`'number' expected, but "foo" found.`);
+		expect(runtimeError("foo.prototype", {})).toEqualErr(`<prototype property> is not allowed for security reasons.`);
+	});
 });

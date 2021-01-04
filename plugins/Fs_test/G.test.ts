@@ -142,3 +142,20 @@ test("parse", () => {
 	expect(G.parse("a", G.make(char("a")))).toEqual("a");
 	expect(() => G.parse("b", G.make(char("a")), e => e.type)).toThrow(new Error(tokenError(0, "a").type));
 });
+
+test("error-message", () => {
+	const error = <T, E>(source: string, parser: PartialParser<string, T, E>) =>
+		R.mapErr(G.make(parser)(source), G.makeDefaultErrorFormatter((cause: () => string) => cause(), S.debug));
+
+	expect(error("foo", str("bar"))).toEqualErr(`Failed to parse 'bar' token <<< "foo" !== "bar"`);
+	expect(error("foo", G.eof())).toEqualErr(`Excessive token exists: foo`);
+	expect(error("foo", G.and(str("bar"), G.succeed(0)))).toEqualErr(`And-predicate failed: foo`);
+	expect(error("foo", G.not(str("foo"), G.succeed(0)))).toEqualErr(`Not-predicate failed: foo`);
+	expect(error("foo", G.validate(str("foo"), s => R.err(s)))).toEqualErr(`Validation failed <<< "foo"`);
+	expect(error("foo", G.fail("bar"))).toEqualErr(`Unknown error: "bar"`);
+
+	expect(error("foo", G.oneOf([str("bar"), str("baz")])))
+		.toEqualErr(`Failed to parse 'bar' token <<< "foo" !== "bar"`);
+	expect(error("foo", G.oneOf([str("bar"), G.seqOf([char("f"), char("s")])])))
+		.toEqualErr(`Failed to parse 's' token <<< "o" !== "s"`);
+});

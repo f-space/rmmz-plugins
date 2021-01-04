@@ -3,7 +3,9 @@ import Fs from "./Fs";
 
 const { R, P } = Fs;
 
-const parse = <T, E>(s: string, parser: Fs.P.Parser<T, E>) => parser(s);
+type Parser<T, E> = Fs.P.Parser<T, E>;
+
+const parse = <T, E>(s: string, parser: Parser<T, E>) => parser(s);
 
 const formatError = <K extends string>(expected: K) => ({ type: 'format' as const, expected });
 const jsonError = () => ({ type: 'json' as const });
@@ -160,4 +162,15 @@ test("parse", () => {
 test("parseAll", () => {
 	expect(P.parseAll({ foo: "42", bar: "42" }, { foo: P.integer, bar: P.string }))
 		.toEqual({ foo: 42, bar: "42" });
+});
+
+test("error-message", () => {
+	const error = <T, E>(source: string, parser: Parser<T, E>) => R.mapErr(parser(source), P.defaultErrorFormatter);
+	const jsonErrorMessage = (source: string) => { try { JSON.parse(source); } catch (e) { return e.message; } };
+
+	expect(error("truee", P.boolean)).toEqualErr(`Failed to parse parameter as 'boolean': truee`);
+	expect(error("[1, 2,", P.array(P.integer)))
+		.toEqualErr(`Failed to parse parameter as JSON: "${jsonErrorMessage("[1, 2,")}"`);
+	expect(error("foo", P.validate(P.string, s => R.err(s)))).toEqualErr(`Validation failed <<< "foo"`);
+	expect(error("foo", P.fail("bar"))).toEqualErr(`Unknown error: "bar"`);
 });
