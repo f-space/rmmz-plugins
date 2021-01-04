@@ -983,7 +983,7 @@
 
 		const defaultTokenErrorFormatter = error => {
 			const dots = s => S.ellipsis(s, 16);
-			const rest = ({ source: s, start: i }) => s.length === i ? "no more letters" : `"${dots(s.slice(i))}"`;
+			const rest = ({ source: s, position: i }) => s.length === i ? "no more letters" : `"${dots(s.slice(i))}"`;
 			switch (error?.type) {
 				case 'symbol': return `'${error.symbol}' expected, but ${rest(error)} found.`;
 				case 'regexp': return `${S.debug(error.regexp)} expected, but ${rest(error)} found.`;
