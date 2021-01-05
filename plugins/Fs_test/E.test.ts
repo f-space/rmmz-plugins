@@ -140,7 +140,7 @@ describe("parse", () => {
 	const cond = (if_: Node, then: Node, else_: Node) => ({ type: 'conditional-operator' as const, if: if_, then, else: else_ });
 
 	const tokenError = (position: number, name: string) => ({ type: 'token' as const, context: { position }, name });
-	const eofError = (position: number) => ({ type: 'eof' as const, context: { position } });
+	const eoiError = (position: number) => ({ type: 'eoi' as const, context: { position } });
 
 	test("term", () => {
 		expect(parse("42")).toEqualOk(num("42"));
@@ -223,8 +223,8 @@ describe("parse", () => {
 		expect(parse("12 || 34 ? 56 : 78")).toEqualOk(cond(binary("||", num("12"), num("34")), num("56"), num("78")));
 	});
 
-	test("eof", () => {
-		expect(parse("foo bar")).toMatchErr(eofError(1));
+	test("eoi", () => {
+		expect(parse("foo bar")).toMatchErr(eoiError(1));
 	});
 });
 

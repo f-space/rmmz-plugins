@@ -8,7 +8,7 @@ type PartialParser<S, T, E> = Fs.G.PartialParser<S, T, E>;
 const parse = <S, T, E>(source: S, parser: PartialParser<S, T, E>) => G.make(parser)(source);
 
 const tokenError = (position: number, name: string) => ({ type: 'token' as const, context: { position }, name });
-const eofError = (position: number) => ({ type: 'eof' as const, context: { position } });
+const eoiError = (position: number) => ({ type: 'eoi' as const, context: { position } });
 const andError = <E>(position: number, error: E) => ({ type: 'and' as const, context: { position }, error });
 const notError = <T>(position: number, value: T) => ({ type: 'not' as const, context: { position }, value });
 const validationError = <C>(position: number, cause: C) => ({ type: 'validation' as const, context: { position }, cause });
@@ -36,11 +36,11 @@ test("token", () => {
 	expect(parse([{ bar: 42 }], elem({ foo: 42 }) as any)).toMatchErr(tokenError(0, "{ foo: 42 }"));
 });
 
-test("eof", () => {
-	expect(parse("", G.eof())).toEqualOk(null);
-	expect(parse(" ", G.eof())).toMatchErr(eofError(0));
-	expect(parse([], G.eof())).toEqualOk(null);
-	expect(parse([,], G.eof())).toMatchErr(eofError(0));
+test("eoi", () => {
+	expect(parse("", G.eoi())).toEqualOk(null);
+	expect(parse(" ", G.eoi())).toMatchErr(eoiError(0));
+	expect(parse([], G.eoi())).toEqualOk(null);
+	expect(parse([,], G.eoi())).toMatchErr(eoiError(0));
 });
 
 test("succeed", () => {
@@ -148,7 +148,7 @@ test("error-message", () => {
 		R.mapErr(G.make(parser)(source), G.makeDefaultErrorFormatter((cause: () => string) => cause(), S.debug));
 
 	expect(error("foo", str("bar"))).toEqualErr(`failed to parse 'bar' token <<< "foo" !== "bar"`);
-	expect(error("foo", G.eof())).toEqualErr(`excessive token exists: foo`);
+	expect(error("foo", G.eoi())).toEqualErr(`excessive token exists: foo`);
 	expect(error("foo", G.and(str("bar"), G.succeed(0)))).toEqualErr(`and-predicate failed: foo`);
 	expect(error("foo", G.not(str("foo"), G.succeed(0)))).toEqualErr(`not-predicate failed: foo`);
 	expect(error("foo", G.validate(str("foo"), s => R.err(s)))).toEqualErr(`validation failed <<< "foo"`);

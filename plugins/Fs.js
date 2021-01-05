@@ -307,7 +307,7 @@
 
 	const G = (() => {
 		const tokenError = ({ cache, ...context }, name, cause) => ({ type: 'token', context, name, cause });
-		const eofError = ({ cache, ...context }) => ({ type: 'eof', context });
+		const eoiError = ({ cache, ...context }) => ({ type: 'eoi', context });
 		const andError = ({ cache, ...context }, error) => ({ type: 'and', context, error });
 		const notError = ({ cache, ...context }, value) => ({ type: 'not', context, value });
 		const validationError = ({ cache, ...context }, cause) => ({ type: 'validation', context, cause });
@@ -321,9 +321,9 @@
 			);
 		};
 
-		const eof = () => context => {
+		const eoi = () => context => {
 			const { source, position } = context;
-			return position === source.length ? R.ok([null, context]) : R.err(eofError(context));
+			return position === source.length ? R.ok([null, context]) : R.err(eoiError(context));
 		};
 
 		const succeed = value => context => R.ok([value, context]);
@@ -390,7 +390,7 @@
 			const message = error => {
 				switch (error?.type) {
 					case 'token': return `failed to parse '${error.name}' token <<< ${tokenErrorFormatter(error.cause)}`;
-					case 'eof': return `excessive token exists: ${rest(error.context)}`;
+					case 'eoi': return `excessive token exists: ${rest(error.context)}`;
 					case 'and': return `and-predicate failed: ${rest(error.context)}`;
 					case 'not': return `not-predicate failed: ${rest(error.context)}`;
 					case 'validation': return `validation failed <<< ${validationErrorFormatter(error.cause)}`;
@@ -404,7 +404,7 @@
 
 		return {
 			token,
-			eof,
+			eoi,
 			succeed,
 			fail,
 			andThen,
@@ -528,7 +528,7 @@
 					() => G.orElse(G.and(token(")"), G.succeed(L.singleton(node))), () => G.map(rec, rest => L.cons(node, rest))),
 					() => G.succeed(L.singleton(node)),
 				));
-				return G.orElse(G.and(G.orElse(token(")"), () => G.eof()), G.succeed([])), () => G.map(rec, L.toArray));
+				return G.orElse(G.and(G.orElse(token(")"), () => G.eoi()), G.succeed([])), () => G.map(rec, L.toArray));
 			};
 
 			const unaryOp = (term, op) => {
@@ -577,7 +577,7 @@
 			const exprL1 = G.memo(binaryOpL(exprL2, token("||")));
 			const exprL0 = G.memo(condOp(exprL1, expression));
 
-			const endWith = parser => G.andThen(parser, value => G.map(G.eof(), () => value));
+			const endWith = parser => G.andThen(parser, value => G.map(G.eoi(), () => value));
 
 			return G.make(endWith(expression));
 		})();
@@ -784,14 +784,14 @@
 				const token = cause !== null ? `"${restore(source, cause)}"` : "no more tokens";
 				return `'${name}' expected, but ${token} found`;
 			};
-			const formatEofError = (source, error) => {
+			const formatEoiError = (source, error) => {
 				const { context: { source: tokens, position } } = error;
 				const token = restore(source, tokens[position]);
 				return `unable to interpret "${token}"`;
 			};
 			switch (error?.type) {
 				case 'token': return formatTokenError(source, error);
-				case 'eof': return formatEofError(source, error);
+				case 'eoi': return formatEoiError(source, error);
 				default: return `unknown error: ${S.debug(error)}`;
 			}
 		};
@@ -968,7 +968,7 @@
 		const parens = parser => group(parser, symbol("("), symbol(")"));
 		const braces = parser => group(parser, symbol("{"), symbol("}"));
 		const brackets = parser => group(parser, symbol("["), symbol("]"));
-		const endWith = parser => G.andThen(parser, value => G.map(G.eof(), () => value));
+		const endWith = parser => G.andThen(parser, value => G.map(G.eoi(), () => value));
 
 		const withDefault = (parser, value) => map(G.optional(parser), option => O.withDefault(option, value));
 		const chain = (item, delimiter) => withDefault(chain1(item, delimiter), []);

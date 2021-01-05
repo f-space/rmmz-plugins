@@ -8,7 +8,7 @@ type PartialParser<T, E> = Fs.N.PartialParser<T, E>;
 const parse = <T, E>(source: string, parser: PartialParser<T, E>) => N.make(parser)(source);
 
 const tokenError = (position: number, name: string) => ({ type: 'token' as const, context: { position }, name });
-const eofError = (position: number) => ({ type: 'eof' as const, context: { position } });
+const eoiError = (position: number) => ({ type: 'eoi' as const, context: { position } });
 
 test("symbol", () => {
 	expect(parse("foo", N.symbol("foo"))).toEqualOk("foo");
@@ -99,7 +99,7 @@ test("brackets", () => {
 
 test("endWith", () => {
 	expect(parse("42", N.endWith(N.integer))).toEqualOk(42);
-	expect(parse("42;", N.endWith(N.integer))).toMatchErr(eofError(2));
+	expect(parse("42;", N.endWith(N.integer))).toMatchErr(eoiError(2));
 });
 
 test("withDefault", () => {

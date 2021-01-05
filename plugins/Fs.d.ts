@@ -140,8 +140,8 @@ declare namespace G {
 		name: string;
 		cause: C;
 	};
-	export type EofError<S> = {
-		type: 'eof';
+	export type EoiError<S> = {
+		type: 'eoi';
 		context: Context<S>;
 	};
 	export type AndError<S, E> = {
@@ -175,7 +175,7 @@ declare namespace G {
 	export type ErrorFormatter<E> = (error: E) => string;
 
 	const token: <S, T, C>(name: string, accept: AcceptToken<S, T, C>) => PartialParser<S, T, TokenError<S, C>>;
-	const eof: <S>() => PartialParser<S, null, EofError<S>>;
+	const eoi: <S>() => PartialParser<S, null, EoiError<S>>;
 	const succeed: <S, T>(value: T) => PartialParser<S, T, never>;
 	const fail: <S, E>(error: E) => PartialParser<S, never, E>;
 	const andThen: <S, T, U, E, F>(
@@ -220,7 +220,7 @@ declare namespace G {
 
 	export {
 		token,
-		eof,
+		eoi,
 		succeed,
 		fail,
 		andThen,
@@ -313,9 +313,9 @@ declare namespace E {
 		| BinaryOperatorNode
 		| ConditionalOperatorNode;
 
-	export type ParseError = TokenError | EofError;
+	export type ParseError = TokenError | EoiError;
 	export type TokenError = G.TokenError<string, AnyToken | null>;
-	export type EofError = G.EofError<string>;
+	export type EoiError = G.EoiError<string>;
 
 	export type RuntimeError =
 		| ReferenceError
@@ -479,7 +479,7 @@ declare namespace N {
 	export type Parser<T, E> = G.Parser<Source, T, E>;
 
 	export type TokenError<C> = G.TokenError<Source, C>;
-	export type EofError = G.EofError<Source>;
+	export type EoiError = G.EoiError<Source>;
 	export type ValidationError<V> = G.ValidationError<Source, V>;
 
 	export type SymbolError = {
@@ -526,7 +526,7 @@ declare namespace N {
 	const parens: <T, E>(parser: PartialParser<T, E>) => PartialParser<T, E | TokenError<SymbolError | RegexpError>>;
 	const braces: <T, E>(parser: PartialParser<T, E>) => PartialParser<T, E | TokenError<SymbolError | RegexpError>>;
 	const brackets: <T, E>(parser: PartialParser<T, E>) => PartialParser<T, E | TokenError<SymbolError | RegexpError>>;
-	const endWith: <T, E>(parser: PartialParser<T, E>) => PartialParser<T, E | EofError>;
+	const endWith: <T, E>(parser: PartialParser<T, E>) => PartialParser<T, E | EoiError>;
 	const withDefault: <T, E>(parser: PartialParser<T, E>, value: T) => PartialParser<T, E>;
 	const chain: <T>(item: PartialParser<T, unknown>, delimiter: PartialParser<unknown, unknown>) => PartialParser<T[], never>;
 	const chain1: <T, E>(item: PartialParser<T, E>, delimiter: PartialParser<unknown, unknown>) => PartialParser<T[], E>;
