@@ -148,9 +148,9 @@ test("error-message", () => {
 		R.mapErr(N.make(parser)(source), N.defaultErrorFormatter);
 
 	expect(error("foo", N.symbol("bar")))
-		.toEqualErr(`Failed to parse 'bar' token <<< 'bar' expected, but "foo" found.`);
+		.toEqualErr(`failed to parse 'bar' token <<< 'bar' expected, but "foo" found`);
 	expect(error("foo", N.boolean))
-		.toEqualErr(`Failed to parse 'boolean' token <<< /^(?:true|false)\\b/ expected, but "foo" found.`);
+		.toEqualErr(`failed to parse 'boolean' token <<< /^(?:true|false)\\b/ expected, but "foo" found`);
 	expect(error("", N.symbol("bar")))
-		.toEqualErr(`Failed to parse 'bar' token <<< 'bar' expected, but no more letters found.`);
+		.toEqualErr(`failed to parse 'bar' token <<< 'bar' expected, but no more letters found`);
 });

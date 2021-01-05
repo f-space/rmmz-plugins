@@ -105,9 +105,9 @@ test("error-message", () => {
 	const error = <A extends Archetype>(meta: Meta, parser: A) =>
 		R.mapErr(M.make(parser)(meta), M.makeDefaultErrorFormatter(S.debug));
 
-	expect(error({ foo: "" }, M.flag("foo"))).toEqualErr(`'foo' metadata does not accept any arguments.`);
-	expect(error({ foo: true }, M.attrN("foo", N.integer))).toEqualErr(`'foo' metadata is not a flag.`);
+	expect(error({ foo: "" }, M.flag("foo"))).toEqualErr(`'foo' metadata does not accept any arguments`);
+	expect(error({ foo: true }, M.attrN("foo", N.integer))).toEqualErr(`'foo' metadata is not a flag`);
 	expect(error({ foo: "foo" }, M.attr("foo", s => R.err(s))))
-		.toEqualErr(`Failed to parse 'foo' metadata arguments. <<< "foo"`);
-	expect(error({ foo: "foo" }, M.fail("bar"))).toEqualErr(`Unknown error: "bar"`);
+		.toEqualErr(`failed to parse 'foo' metadata arguments <<< "foo"`);
+	expect(error({ foo: "foo" }, M.fail("bar"))).toEqualErr(`unknown error: "bar"`);
 });

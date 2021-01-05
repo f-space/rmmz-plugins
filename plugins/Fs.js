@@ -389,12 +389,12 @@
 			};
 			const message = error => {
 				switch (error?.type) {
-					case 'token': return `Failed to parse '${error.name}' token <<< ${tokenErrorFormatter(error.cause)}`;
-					case 'eof': return `Excessive token exists: ${rest(error.context)}`;
-					case 'and': return `And-predicate failed: ${rest(error.context)}`;
-					case 'not': return `Not-predicate failed: ${rest(error.context)}`;
-					case 'validation': return `Validation failed <<< ${validationErrorFormatter(error.cause)}`;
-					default: return `Unknown error: ${S.debug(error)}`;
+					case 'token': return `failed to parse '${error.name}' token <<< ${tokenErrorFormatter(error.cause)}`;
+					case 'eof': return `excessive token exists: ${rest(error.context)}`;
+					case 'and': return `and-predicate failed: ${rest(error.context)}`;
+					case 'not': return `not-predicate failed: ${rest(error.context)}`;
+					case 'validation': return `validation failed <<< ${validationErrorFormatter(error.cause)}`;
+					default: return `unknown error: ${S.debug(error)}`;
 				}
 			};
 			return message(pick(error));
@@ -639,7 +639,7 @@
 					case 'unary-operator': return unaryOp(source, node);
 					case 'binary-operator': return binaryOp(source, node);
 					case 'conditional-operator': return condOp(source, node);
-					default: throw new Error(`Invalid AST node type: ${type}`);
+					default: throw new Error(`invalid AST node type: ${type}`);
 				}
 			};
 
@@ -722,7 +722,7 @@
 					case '+': return env => unary(a => +a, isNumber(evalExpr(env)));
 					case '-': return env => unary(a => -a, isNumber(evalExpr(env)));
 					case '!': return env => unary(a => !a, isBoolean(evalExpr(env)));
-					default: throw new Error(`Unsupported unary operator: ${operator}`);
+					default: throw new Error(`unsupported unary operator: ${operator}`);
 				}
 			};
 
@@ -745,7 +745,7 @@
 					case '>': return env => binary((a, b) => a > b, isNumber(evalL(env)), isNumber(evalR(env)));
 					case '&&': return env => R.andThen(isBoolean(evalL(env)), value => value ? isBoolean(evalR(env)) : R.ok(false));
 					case '||': return env => R.andThen(isBoolean(evalL(env)), value => value ? R.ok(true) : isBoolean(evalR(env)));
-					default: throw new Error(`Unsupported binary operator: ${operator}`);
+					default: throw new Error(`unsupported binary operator: ${operator}`);
 				}
 			};
 
@@ -782,28 +782,28 @@
 			const formatTokenError = (source, error) => {
 				const { name, cause } = error;
 				const token = cause !== null ? `"${restore(source, cause)}"` : "no more tokens";
-				return `'${name}' expected, but ${token} found.`;
+				return `'${name}' expected, but ${token} found`;
 			};
 			const formatEofError = (source, error) => {
 				const { context: { source: tokens, position } } = error;
 				const token = restore(source, tokens[position]);
-				return `Unable to interpret "${token}".`;
+				return `unable to interpret "${token}"`;
 			};
 			switch (error?.type) {
 				case 'token': return formatTokenError(source, error);
 				case 'eof': return formatEofError(source, error);
-				default: return `Unknown error: ${S.debug(error)}`;
+				default: return `unknown error: ${S.debug(error)}`;
 			}
 		};
 
 		const defaultRuntimeErrorFormatter = error => {
 			switch (error?.type) {
-				case 'reference': return `"${error.name}" not found.`;
-				case 'property': return `"${error.property}" property not exists.`;
-				case 'range': return `${error.index} is out of range.`;
-				case 'type': return `'${error.expected}' expected, but ${S.debug(error.actual)} found.`;
-				case 'security': return `<${error.target}> is not allowed for security reasons.`;
-				default: return `Unknown error: ${S.debug(error)}`;
+				case 'reference': return `"${error.name}" not found`;
+				case 'property': return `"${error.property}" property not exists`;
+				case 'range': return `${error.index} is out of range`;
+				case 'type': return `'${error.expected}' expected, but ${S.debug(error.actual)} found`;
+				case 'security': return `<${error.target}> is not allowed for security reasons`;
+				default: return `unknown error: ${S.debug(error)}`;
 			}
 		};
 
@@ -860,13 +860,13 @@
 					if (archetype.length === 1) {
 						return array(make(archetype[0]));
 					} else {
-						throw new Error(`Archetype array must be a singleton: ${S.debug(archetype)}`);
+						throw new Error(`archetype array must be a singleton: ${S.debug(archetype)}`);
 					}
 				} else {
 					return struct(Object.entries(archetype).map(([key, value]) => entry(key, make(value))));
 				}
 			} else {
-				throw new Error(`Invalid archetype item: ${S.debug(archetype)}`);
+				throw new Error(`invalid archetype item: ${S.debug(archetype)}`);
 			}
 		};
 
@@ -881,10 +881,10 @@
 		const makeDefaultErrorFormatter = validationErrorFormatter => error => {
 			const dots = s => S.ellipsis(s, 32);
 			switch (error?.type) {
-				case 'format': return `Failed to parse parameter as '${error.expected}': ${dots(error.source)}`;
-				case 'json': return `Failed to parse parameter as JSON: "${error.inner.message}"`;
-				case 'validation': return `Validation failed <<< ${validationErrorFormatter(error.cause)}`;
-				default: return `Unknown error: ${S.debug(error)}`;
+				case 'format': return `failed to parse parameter as '${error.expected}': ${dots(error.source)}`;
+				case 'json': return `failed to parse parameter as JSON: "${error.inner.message}"`;
+				case 'validation': return `validation failed <<< ${validationErrorFormatter(error.cause)}`;
+				default: return `unknown error: ${S.debug(error)}`;
 			}
 		};
 
@@ -985,9 +985,9 @@
 			const dots = s => S.ellipsis(s, 16);
 			const rest = ({ source: s, position: i }) => s.length === i ? "no more letters" : `"${dots(s.slice(i))}"`;
 			switch (error?.type) {
-				case 'symbol': return `'${error.symbol}' expected, but ${rest(error)} found.`;
-				case 'regexp': return `${S.debug(error.regexp)} expected, but ${rest(error)} found.`;
-				default: return `Unknown error: ${S.debug(error)}`;
+				case 'symbol': return `'${error.symbol}' expected, but ${rest(error)} found`;
+				case 'regexp': return `${S.debug(error.regexp)} expected, but ${rest(error)} found`;
+				default: return `unknown error: ${S.debug(error)}`;
 			}
 		};
 
@@ -1095,14 +1095,14 @@
 			switch (error?.type) {
 				case 'notation':
 					switch (error.expected) {
-						case 'flag': return `'${error.name}' metadata does not accept any arguments.`;
-						case 'attr': return `'${error.name}' metadata is not a flag.`;
-						default: return `Unknown metadata type: ${error.expected}`;
+						case 'flag': return `'${error.name}' metadata does not accept any arguments`;
+						case 'attr': return `'${error.name}' metadata is not a flag`;
+						default: return `unknown metadata type: ${error.expected}`;
 					}
 				case 'attribute':
 					const message = attributeErrorFormatter(error.cause);
-					return `Failed to parse '${error.name}' metadata arguments. <<< ${message}`;
-				default: return `Unknown error: ${S.debug(error)}`;
+					return `failed to parse '${error.name}' metadata arguments <<< ${message}`;
+				default: return `unknown error: ${S.debug(error)}`;
 			}
 		};
 

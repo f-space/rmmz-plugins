@@ -168,9 +168,9 @@ test("error-message", () => {
 	const error = <T, E>(source: string, parser: Parser<T, E>) => R.mapErr(parser(source), P.defaultErrorFormatter);
 	const jsonErrorMessage = (source: string) => { try { JSON.parse(source); } catch (e) { return e.message; } };
 
-	expect(error("truee", P.boolean)).toEqualErr(`Failed to parse parameter as 'boolean': truee`);
+	expect(error("truee", P.boolean)).toEqualErr(`failed to parse parameter as 'boolean': truee`);
 	expect(error("[1, 2,", P.array(P.integer)))
-		.toEqualErr(`Failed to parse parameter as JSON: "${jsonErrorMessage("[1, 2,")}"`);
-	expect(error("foo", P.validate(P.string, s => R.err(s)))).toEqualErr(`Validation failed <<< "foo"`);
-	expect(error("foo", P.fail("bar"))).toEqualErr(`Unknown error: "bar"`);
+		.toEqualErr(`failed to parse parameter as JSON: "${jsonErrorMessage("[1, 2,")}"`);
+	expect(error("foo", P.validate(P.string, s => R.err(s)))).toEqualErr(`validation failed <<< "foo"`);
+	expect(error("foo", P.fail("bar"))).toEqualErr(`unknown error: "bar"`);
 });
