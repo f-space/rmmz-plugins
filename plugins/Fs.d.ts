@@ -137,7 +137,6 @@ declare namespace G {
 	export type TokenError<S, C> = {
 		type: 'token';
 		context: Context<S>;
-		name: string;
 		cause: C;
 	};
 	export type EoiError<S> = {
@@ -174,7 +173,7 @@ declare namespace G {
 	export type Validator<T, U, V> = (value: T) => R.Result<U, V>;
 	export type ErrorFormatter<E> = (error: E) => string;
 
-	const token: <S, T, C>(name: string, accept: AcceptToken<S, T, C>) => PartialParser<S, T, TokenError<S, C>>;
+	const token: <S, T, C>(accept: AcceptToken<S, T, C>) => PartialParser<S, T, TokenError<S, C>>;
 	const eoi: <S>() => PartialParser<S, null, EoiError<S>>;
 	const succeed: <S, T>(value: T) => PartialParser<S, T, never>;
 	const fail: <S, E>(error: E) => PartialParser<S, never, E>;
@@ -251,8 +250,10 @@ declare namespace E {
 	export type BinaryOperator = '+' | '-' | '*' | '/' | '%' | '**' | '===' | '!==' | '<=' | '>=' | '<' | '>' | '&&' | '||';
 	export type OtherSymbol = '(' | ')' | '[' | ']' | ',' | '.' | '?' | ':';
 	export type Unknown = 'unknown';
+	export type PseudoToken = 'expression';
 
 	export type TokenType = Term | UnaryOperator | BinaryOperator | OtherSymbol | Unknown;
+	export type ExtTokenType = TokenType | PseudoToken;
 	export type Token<T extends TokenType> = {
 		type: T;
 		start: number;
@@ -314,7 +315,7 @@ declare namespace E {
 		| ConditionalOperatorNode;
 
 	export type ParseError = TokenError | EoiError;
-	export type TokenError = G.TokenError<string, AnyToken | null>;
+	export type TokenError = G.TokenError<string, { expected: ExtTokenType; token: AnyToken | undefined; }>;
 	export type EoiError = G.EoiError<string>;
 
 	export type RuntimeError =
@@ -492,6 +493,7 @@ declare namespace N {
 		type: 'regexp';
 		source: Source;
 		start: number;
+		name: string;
 		regexp: RegExp;
 	};
 

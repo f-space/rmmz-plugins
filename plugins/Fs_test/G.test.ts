@@ -1,39 +1,33 @@
 import "./JestExt";
 import Fs from "./Fs";
 
-const { O, R, S, U, G } = Fs;
+const { O, R, U, G } = Fs;
 
 type PartialParser<S, T, E> = Fs.G.PartialParser<S, T, E>;
 
 const parse = <S, T, E>(source: S, parser: PartialParser<S, T, E>) => G.make(parser)(source);
 
-const tokenError = (position: number, name: string) => ({ type: 'token' as const, context: { position }, name });
+const tokenError = <C>(position: number, cause: C) => ({ type: 'token' as const, context: { position }, cause });
 const eoiError = (position: number) => ({ type: 'eoi' as const, context: { position } });
 const andError = <E>(position: number, error: E) => ({ type: 'and' as const, context: { position }, error });
 const notError = <T>(position: number, value: T) => ({ type: 'not' as const, context: { position }, value });
 const validationError = <C>(position: number, cause: C) => ({ type: 'validation' as const, context: { position }, cause });
 
-const char = (c: string) => G.token(c, (s: string, i) =>
-	s[i] === c ? R.ok([c, i + 1]) : R.err(() => `"${s[i]}" !== "${c}"`)
+const char = (c: string) => G.token((s: string, i) => s[i] === c ? R.ok([c, i + 1]) : R.err(c));
+
+const str = (str: string) => G.token((s: string, i) =>
+	s.slice(i).startsWith(str) ? R.ok([s.slice(i, i + str.length), i + str.length]) : R.err(str)
 );
 
-const str = (str: string) => G.token(str, (s: string, i) =>
-	s.slice(i).startsWith(str)
-		? R.ok([s.slice(i, i + str.length), i + str.length])
-		: R.err(() => `"${S.ellipsis(s, 10)}" !== "${str}"`)
-);
-
-const elem = <T>(x: T) => G.token(S.debug(x), (s: readonly T[], i) =>
-	U.simpleEqual(s[i], x)
-		? R.ok([s[i], i + 1])
-		: R.err(() => `${S.debug(s[i])} !== ${S.debug(x)}`)
+const elem = <T>(x: T) => G.token((s: readonly T[], i) =>
+	U.simpleEqual(s[i], x) ? R.ok([s[i], i + 1]) : R.err(x)
 );
 
 test("token", () => {
 	expect(parse("foo", str("foo"))).toEqualOk("foo");
 	expect(parse("bar", str("foo"))).toMatchErr(tokenError(0, "foo"));
 	expect(parse([{ foo: 42 }], elem({ foo: 42 }))).toEqualOk({ foo: 42 });
-	expect(parse([{ bar: 42 }], elem({ foo: 42 }) as any)).toMatchErr(tokenError(0, "{ foo: 42 }"));
+	expect(parse([{ bar: 42 }], elem({ foo: 42 }) as any)).toMatchErr(tokenError(0, { foo: 42 }));
 });
 
 test("eoi", () => {
@@ -145,9 +139,9 @@ test("parse", () => {
 
 test("error-message", () => {
 	const error = <T, E>(source: string, parser: PartialParser<string, T, E>) =>
-		R.mapErr(G.make(parser)(source), G.makeDefaultErrorFormatter((cause: () => string) => cause(), S.debug));
+		R.mapErr(G.make(parser)(source), G.defaultErrorFormatter);
 
-	expect(error("foo", str("bar"))).toEqualErr(`failed to parse 'bar' token <<< "foo" !== "bar"`);
+	expect(error("foo", str("bar"))).toEqualErr(`failed to parse token <<< "bar"`);
 	expect(error("foo", G.eoi())).toEqualErr(`excessive token exists: foo`);
 	expect(error("foo", G.and(str("bar"), G.succeed(0)))).toEqualErr(`and-predicate failed: foo`);
 	expect(error("foo", G.not(str("foo"), G.succeed(0)))).toEqualErr(`not-predicate failed: foo`);
@@ -155,7 +149,7 @@ test("error-message", () => {
 	expect(error("foo", G.fail("bar"))).toEqualErr(`unknown error: "bar"`);
 
 	expect(error("foo", G.oneOf([str("bar"), str("baz")])))
-		.toEqualErr(`failed to parse 'bar' token <<< "foo" !== "bar"`);
+		.toEqualErr(`failed to parse token <<< "bar"`);
 	expect(error("foo", G.oneOf([str("bar"), G.seqOf([char("f"), char("s")])])))
-		.toEqualErr(`failed to parse 's' token <<< "o" !== "s"`);
+		.toEqualErr(`failed to parse token <<< "s"`);
 });

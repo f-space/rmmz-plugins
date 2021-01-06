@@ -7,12 +7,13 @@ type PartialParser<T, E> = Fs.N.PartialParser<T, E>;
 
 const parse = <T, E>(source: string, parser: PartialParser<T, E>) => N.make(parser)(source);
 
-const tokenError = (position: number, name: string) => ({ type: 'token' as const, context: { position }, name });
+const symbolError = (position: number, symbol: string) => ({ type: 'token' as const, context: { position }, cause: { symbol } });
+const regexpError = (position: number, name: string) => ({ type: 'token' as const, context: { position }, cause: { name } });
 const eoiError = (position: number) => ({ type: 'eoi' as const, context: { position } });
 
 test("symbol", () => {
 	expect(parse("foo", N.symbol("foo"))).toEqualOk("foo");
-	expect(parse("", N.symbol("foo"))).toMatchErr(tokenError(0, "foo"));
+	expect(parse("", N.symbol("foo"))).toMatchErr(symbolError(0, "foo"));
 });
 
 test("regexp", () => {
@@ -20,7 +21,7 @@ test("regexp", () => {
 		return [fst, snd].map(x => Number.parseInt(x, 10));
 	});
 	expect(parse("24..42", parser)).toEqualOk([24, 42]);
-	expect(parse("", parser)).toMatchErr(tokenError(0, "range"));
+	expect(parse("", parser)).toMatchErr(regexpError(0, "range"));
 });
 
 test("spacing", () => {
@@ -30,34 +31,34 @@ test("spacing", () => {
 
 test("spaces", () => {
 	expect(parse("  \r\n  ", N.spaces)).toEqualOk("  \r\n  ");
-	expect(parse("", N.spaces)).toMatchErr(tokenError(0, "spaces"));
+	expect(parse("", N.spaces)).toMatchErr(regexpError(0, "spaces"));
 });
 
 test("natural", () => {
 	expect(parse("42", N.natural)).toEqualOk(42);
-	expect(parse("+42", N.natural)).toMatchErr(tokenError(0, "natural"));
-	expect(parse("", N.natural)).toMatchErr(tokenError(0, "natural"));
+	expect(parse("+42", N.natural)).toMatchErr(regexpError(0, "natural"));
+	expect(parse("", N.natural)).toMatchErr(regexpError(0, "natural"));
 });
 
 test("integer", () => {
 	expect(parse("42", N.integer)).toEqualOk(42);
 	expect(parse("+42", N.integer)).toEqualOk(42);
 	expect(parse("-42", N.integer)).toEqualOk(-42);
-	expect(parse("", N.integer)).toMatchErr(tokenError(0, "integer"));
+	expect(parse("", N.integer)).toMatchErr(regexpError(0, "integer"));
 });
 
 test("number", () => {
 	expect(parse("42", N.number)).toEqualOk(42);
 	expect(parse("12.34", N.number)).toEqualOk(12.34);
 	expect(parse("-12.34e+5", N.number)).toEqualOk(-12.34e+5);
-	expect(parse("", N.number)).toMatchErr(tokenError(0, "number"));
+	expect(parse("", N.number)).toMatchErr(regexpError(0, "number"));
 });
 
 test("boolean", () => {
 	expect(parse("true", N.boolean)).toEqualOk(true);
 	expect(parse("false", N.boolean)).toEqualOk(false);
-	expect(parse("TRUE", N.boolean)).toMatchErr(tokenError(0, "boolean"));
-	expect(parse("", N.boolean)).toMatchErr(tokenError(0, "boolean"));
+	expect(parse("TRUE", N.boolean)).toMatchErr(regexpError(0, "boolean"));
+	expect(parse("", N.boolean)).toMatchErr(regexpError(0, "boolean"));
 });
 
 test("text", () => {
@@ -65,9 +66,9 @@ test("text", () => {
 	expect(parse('"foo"', N.text)).toEqualOk("foo");
 	expect(parse('"`"`````""', N.text)).toEqualOk('"``"');
 	expect(parse('"`"foo`"\n`"bar`""', N.text)).toEqualOk('"foo"\n"bar"');
-	expect(parse('', N.text)).toMatchErr(tokenError(0, "text"));
-	expect(parse('"foo```"', N.text)).toMatchErr(tokenError(0, "text"));
-	expect(parse('"`\n"', N.text)).toMatchErr(tokenError(0, "text"));
+	expect(parse('', N.text)).toMatchErr(regexpError(0, "text"));
+	expect(parse('"foo```"', N.text)).toMatchErr(regexpError(0, "text"));
+	expect(parse('"`\n"', N.text)).toMatchErr(regexpError(0, "text"));
 });
 
 test("margin", () => {
@@ -84,17 +85,17 @@ test("group", () => {
 
 test("parens", () => {
 	expect(parse("( 42 )", N.parens(N.integer))).toEqualOk(42);
-	expect(parse("42", N.parens(N.integer))).toMatchErr(tokenError(0, "("));
+	expect(parse("42", N.parens(N.integer))).toMatchErr(symbolError(0, "("));
 });
 
 test("braces", () => {
 	expect(parse("{ 42 }", N.braces(N.integer))).toEqualOk(42);
-	expect(parse("42", N.braces(N.integer))).toMatchErr(tokenError(0, "{"));
+	expect(parse("42", N.braces(N.integer))).toMatchErr(symbolError(0, "{"));
 });
 
 test("brackets", () => {
 	expect(parse("[ 42 ]", N.brackets(N.integer))).toEqualOk(42);
-	expect(parse("42", N.brackets(N.integer))).toMatchErr(tokenError(0, "["));
+	expect(parse("42", N.brackets(N.integer))).toMatchErr(symbolError(0, "["));
 });
 
 test("endWith", () => {
@@ -119,14 +120,14 @@ test("chain1", () => {
 	const numbers = N.chain1(N.natural, N.symbol("-"));
 	expect(parse("12-34-56-78", numbers)).toEqualOk([12, 34, 56, 78]);
 	expect(parse("12 - 34 - 56 - 78", numbers)).toEqualOk([12]);
-	expect(parse("", numbers)).toMatchErr(tokenError(0, "natural"));
+	expect(parse("", numbers)).toMatchErr(regexpError(0, "natural"));
 });
 
 test("join", () => {
 	const csv = N.join([N.natural, N.boolean, N.text], N.regexp('comma', /^ *, */));
 	expect(parse("42, true, \"foo\"", csv)).toEqualOk([42, true, "foo"]);
-	expect(parse("42,\ntrue,\n\"foo\"", csv)).toMatchErr(tokenError(3, "boolean"));
-	expect(parse("", csv)).toMatchErr(tokenError(0, "natural"));
+	expect(parse("42,\ntrue,\n\"foo\"", csv)).toMatchErr(regexpError(3, "boolean"));
+	expect(parse("", csv)).toMatchErr(regexpError(0, "natural"));
 });
 
 test("list", () => {
@@ -139,8 +140,8 @@ test("list", () => {
 test("tuple", () => {
 	const password = N.map(N.tuple([N.symbol("Open"), N.symbol("Sesame"), N.symbol("!!")]), () => true);
 	expect(parse("Open Sesame !!", password)).toEqualOk(true);
-	expect(parse("Open Barley !!", password)).toMatchErr(tokenError(5, "Sesame"));
-	expect(parse("", password)).toMatchErr(tokenError(0, "Open"));
+	expect(parse("Open Barley !!", password)).toMatchErr(symbolError(5, "Sesame"));
+	expect(parse("", password)).toMatchErr(symbolError(0, "Open"));
 });
 
 test("error-message", () => {
@@ -148,9 +149,9 @@ test("error-message", () => {
 		R.mapErr(N.make(parser)(source), N.defaultErrorFormatter);
 
 	expect(error("foo", N.symbol("bar")))
-		.toEqualErr(`failed to parse 'bar' token <<< 'bar' expected, but "foo" found`);
+		.toEqualErr(`failed to parse token <<< 'bar' expected, but "foo" found`);
 	expect(error("foo", N.boolean))
-		.toEqualErr(`failed to parse 'boolean' token <<< /^(?:true|false)\\b/ expected, but "foo" found`);
+		.toEqualErr(`failed to parse token <<< 'boolean' expected, but "foo" found`);
 	expect(error("", N.symbol("bar")))
-		.toEqualErr(`failed to parse 'bar' token <<< 'bar' expected, but no more letters found`);
+		.toEqualErr(`failed to parse token <<< 'bar' expected, but no more letters found`);
 });

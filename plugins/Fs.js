@@ -306,18 +306,18 @@
 	})();
 
 	const G = (() => {
-		const tokenError = ({ cache, ...context }, name, cause) => ({ type: 'token', context, name, cause });
+		const tokenError = ({ cache, ...context }, cause) => ({ type: 'token', context, cause });
 		const eoiError = ({ cache, ...context }) => ({ type: 'eoi', context });
 		const andError = ({ cache, ...context }, error) => ({ type: 'and', context, error });
 		const notError = ({ cache, ...context }, value) => ({ type: 'not', context, value });
 		const validationError = ({ cache, ...context }, cause) => ({ type: 'validation', context, cause });
 
-		const token = (name, accept) => context => {
+		const token = accept => context => {
 			const { source, position } = context;
 			return R.match(
 				accept(source, position),
 				([value, position]) => R.ok([value, { ...context, position }]),
-				cause => R.err(tokenError(context, name, cause)),
+				cause => R.err(tokenError(context, cause)),
 			);
 		};
 
@@ -389,7 +389,7 @@
 			};
 			const message = error => {
 				switch (error?.type) {
-					case 'token': return `failed to parse '${error.name}' token <<< ${tokenErrorFormatter(error.cause)}`;
+					case 'token': return `failed to parse token <<< ${tokenErrorFormatter(error.cause)}`;
 					case 'eoi': return `excessive token exists: ${rest(error.context)}`;
 					case 'and': return `and-predicate failed: ${rest(error.context)}`;
 					case 'not': return `not-predicate failed: ${rest(error.context)}`;
@@ -439,20 +439,20 @@
 
 			const make = (type, start, end) => ({ type, start, end });
 
-			const match = (type, re, fn) => G.token(type, (source, position) => {
+			const match = (re, fn) => G.token((source, position) => {
 				const match = source.slice(position).match(re);
 				return match !== null ? R.ok(fn(match[0], position)) : R.err(undefined);
 			});
-			const skip = (type, re) => match(type, re, (token, start) => [undefined, start + token.length]);
-			const symbol = (type, re) => match(type, re, (token, start) => next(token, start, start + token.length));
-			const word = (type, re) => match(type, re, (token, start) => next(type, start, start + token.length));
+			const skip = re => match(re, (token, start) => [undefined, start + token.length]);
+			const symbol = re => match(re, (token, start) => next(token, start, start + token.length));
+			const word = (type, re) => match(re, (token, start) => next(type, start, start + token.length));
 			const next = (type, start, end) => [make(type, start, end), end];
 
-			const spacing = skip('spacing', RE_SPACING);
+			const spacing = skip(RE_SPACING);
 			const token = G.oneOf([
 				word('identifier', RE_IDENTIFIER),
 				word('number', RE_NUMBER),
-				symbol('symbol', RE_SYMBOL),
+				symbol(RE_SYMBOL),
 				word('unknown', RE_UNKNOWN),
 			]);
 			const tokenList = G.many(G.andThen(spacing, () => token));
@@ -462,6 +462,8 @@
 		})();
 
 		const parse = (() => {
+			const tokenError = (expected, token) => ({ expected, token });
+
 			const numberNode = value => ({ type: 'number', value });
 			const identifierNode = name => ({ type: 'identifier', name });
 			const memberAccessNode = (object, property) => ({ type: 'member-access', object, property });
@@ -471,12 +473,13 @@
 			const binaryOpNode = (operator, lhs, rhs) => ({ type: 'binary-operator', operator, lhs, rhs });
 			const condOpNode = (if_, then, else_) => ({ type: 'conditional-operator', if: if_, then, else: else_ });
 
-			const token = type => G.token(type, (source, position) => {
+			const token = type => G.token((source, position) => {
 				const token = position < source.length ? source[position] : undefined;
-				return token !== undefined && token.type === type ? R.ok([token, position + 1]) : R.err(token ?? null);
+				return token !== undefined && token.type === type ? R.ok([token, position + 1]) : R.err(tokenError(type, token));
 			});
-			const fail = type => G.token(type, (source, position) => {
-				return R.err(position < source.length ? source[position] : null);
+			const fail = type => G.token((source, position) => {
+				const token = position < source.length ? source[position] : undefined;
+				return R.err(tokenError(type, token));
 			});
 
 			const number = G.map(token("number"), value => numberNode(value));
@@ -780,9 +783,9 @@
 		const defaultCompileErrorFormatter = ({ source, error }) => {
 			const restore = (source, token) => source.slice(token.start, token.end);
 			const formatTokenError = (source, error) => {
-				const { name, cause } = error;
-				const token = cause !== null ? `"${restore(source, cause)}"` : "no more tokens";
-				return `'${name}' expected, but ${token} found`;
+				const { cause: { expected, token } } = error;
+				const found = token !== undefined ? `"${restore(source, token)}"` : "no more tokens";
+				return `'${expected}' expected, but ${found} found`;
 			};
 			const formatEoiError = (source, error) => {
 				const { context: { source: tokens, position } } = error;
@@ -927,7 +930,7 @@
 		const RE_TEXT = /^(?:'(?:[^'`]|`.)*'|"(?:[^"`]|`.)*")/u;
 
 		const symbolError = (source, position, symbol) => ({ type: 'symbol', source, position, symbol });
-		const regexpError = (source, position, regexp) => ({ type: 'regexp', source, position, regexp });
+		const regexpError = (source, position, name, regexp) => ({ type: 'regexp', source, position, name, regexp });
 
 		const { succeed, fail, make } = G;
 		const map = (parser, fn) => G.memo(G.map(parser, fn));
@@ -936,13 +939,13 @@
 		const oneOf = parsers => G.memo(G.oneOf(parsers));
 		const validate = (parser, validator) => G.memo(G.validate(parser, validator));
 
-		const symbol = symbol => G.memo(G.token(symbol, (source, start) => {
+		const symbol = symbol => G.memo(G.token((source, start) => {
 			return source.startsWith(symbol, start)
 				? R.ok([symbol, start + symbol.length])
 				: R.err(symbolError(source, start, symbol));
 		}));
 
-		const regexp = (name, re, fn) => G.memo(G.token(name, (source, start) => {
+		const regexp = (name, re, fn) => G.memo(G.token((source, start) => {
 			const slice = source.slice(start);
 			const match = slice.match(re);
 			if (match !== null && match.index === 0) {
@@ -950,7 +953,7 @@
 				const value = fn !== undefined ? fn(...match) : token;
 				return R.ok([value, start + token.length]);
 			} else {
-				return R.err(regexpError(source, start, re));
+				return R.err(regexpError(source, start, name, re));
 			}
 		}));
 
@@ -986,7 +989,7 @@
 			const rest = ({ source: s, position: i }) => s.length === i ? "no more letters" : `"${dots(s.slice(i))}"`;
 			switch (error?.type) {
 				case 'symbol': return `'${error.symbol}' expected, but ${rest(error)} found`;
-				case 'regexp': return `${S.debug(error.regexp)} expected, but ${rest(error)} found`;
+				case 'regexp': return `'${error.name}' expected, but ${rest(error)} found`;
 				default: return `unknown error: ${S.debug(error)}`;
 			}
 		};

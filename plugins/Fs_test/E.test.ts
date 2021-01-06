@@ -102,6 +102,8 @@ describe("tokenize", () => {
 });
 
 describe("parse", () => {
+	type TokenType = Fs.E.TokenType;
+	type ExtTokenType = Fs.E.ExtTokenType;
 	type AnyToken = Fs.E.AnyToken;
 	type ExpressionNode = Fs.E.ExpressionNode;
 	type IdentifierNode = Fs.E.IdentifierNode;
@@ -139,7 +141,8 @@ describe("parse", () => {
 	const binary = (operator: Fs.E.BinaryOperator, lhs: Node, rhs: Node) => ({ type: 'binary-operator' as const, operator, lhs, rhs });
 	const cond = (if_: Node, then: Node, else_: Node) => ({ type: 'conditional-operator' as const, if: if_, then, else: else_ });
 
-	const tokenError = (position: number, name: string) => ({ type: 'token' as const, context: { position }, name });
+	const tokenError = (position: number, expected: ExtTokenType, token: TokenType | undefined) =>
+		({ type: 'token' as const, context: { position }, cause: { expected, token: token && { type: token } } });
 	const eoiError = (position: number) => ({ type: 'eoi' as const, context: { position } });
 
 	test("term", () => {
@@ -150,7 +153,7 @@ describe("parse", () => {
 	test("member-access", () => {
 		expect(parse("foo.bar")).toEqualOk(member(id("foo"), id("bar")));
 		expect(parse("foo.bar.baz")).toEqualOk(member(member(id("foo"), id("bar")), id("baz")));
-		expect(parse("foo.")).toMatchErr(tokenError(2, "identifier"));
+		expect(parse("foo.")).toMatchErr(tokenError(2, "identifier", undefined));
 	});
 
 	test("element-access", () => {
@@ -158,8 +161,8 @@ describe("parse", () => {
 		expect(parse("foo[bar]")).toEqualOk(elem(id("foo"), id("bar")));
 		expect(parse("foo[bar[baz]]")).toEqualOk(elem(id("foo"), elem(id("bar"), id("baz"))));
 		expect(parse("foo[bar][baz]")).toEqualOk(elem(elem(id("foo"), id("bar")), id("baz")));
-		expect(parse("foo[]")).toMatchErr(tokenError(2, "expression"));
-		expect(parse("foo[bar")).toMatchErr(tokenError(3, "]"));
+		expect(parse("foo[]")).toMatchErr(tokenError(2, "expression", "]"));
+		expect(parse("foo[bar")).toMatchErr(tokenError(3, "]", undefined));
 	});
 
 	test("function-call", () => {
@@ -169,9 +172,9 @@ describe("parse", () => {
 		expect(parse("foo(bar, baz, qux,)")).toEqualOk(call(id("foo"), [id("bar"), id("baz"), id("qux")]));
 		expect(parse("foo(bar(baz))")).toEqualOk(call(id("foo"), [call(id("bar"), [id("baz")])]));
 		expect(parse("foo(bar)(baz)")).toEqualOk(call(call(id("foo"), [id("bar")]), [id("baz")]));
-		expect(parse("foo(")).toMatchErr(tokenError(2, ")"));
-		expect(parse("foo(,)")).toMatchErr(tokenError(2, "expression"));
-		expect(parse("foo(bar,,)")).toMatchErr(tokenError(4, "expression"));
+		expect(parse("foo(")).toMatchErr(tokenError(2, ")", undefined));
+		expect(parse("foo(,)")).toMatchErr(tokenError(2, "expression", ","));
+		expect(parse("foo(bar,,)")).toMatchErr(tokenError(4, "expression", ","));
 	});
 
 	test("unary-operator", () => {
@@ -179,7 +182,7 @@ describe("parse", () => {
 		expect(parse("+42")).toEqualOk(unary("+", num("42")));
 		expect(parse("-42")).toEqualOk(unary("-", num("42")));
 		expect(parse("++42")).toEqualOk(unary("+", unary("+", num("42"))));
-		expect(parse("+")).toMatchErr(tokenError(1, "expression"));
+		expect(parse("+")).toMatchErr(tokenError(1, "expression", undefined));
 	});
 
 	test("binary-operator", () => {
@@ -197,17 +200,17 @@ describe("parse", () => {
 		expect(parse("12 > 34 > 56")).toEqualOk(binary(">", binary(">", num("12"), num("34")), num("56")));
 		expect(parse("12 && 34 && 56")).toEqualOk(binary("&&", binary("&&", num("12"), num("34")), num("56")));
 		expect(parse("12 || 34 || 56")).toEqualOk(binary("||", binary("||", num("12"), num("34")), num("56")));
-		expect(parse("12 *")).toMatchErr(tokenError(2, "expression"));
-		expect(parse("12 **")).toMatchErr(tokenError(2, "expression"));
+		expect(parse("12 *")).toMatchErr(tokenError(2, "expression", undefined));
+		expect(parse("12 **")).toMatchErr(tokenError(2, "expression", undefined));
 	});
 
 	test("conditional-operator", () => {
 		expect(parse("12 ? 34 : 56")).toEqualOk(cond(num("12"), num("34"), num("56")));
 		expect(parse("12 ? 34 : 56 ? 78 : 90")).toEqualOk(cond(num("12"), num("34"), cond(num("56"), num("78"), num("90"))));
 		expect(parse("12 ? 34 ? 56 : 78 : 90")).toEqualOk(cond(num("12"), cond(num("34"), num("56"), num("78")), num("90")));
-		expect(parse("12 ?")).toMatchErr(tokenError(2, "expression"));
-		expect(parse("12 ? 34")).toMatchErr(tokenError(3, ":"));
-		expect(parse("12 ? 34 :")).toMatchErr(tokenError(4, "expression"));
+		expect(parse("12 ?")).toMatchErr(tokenError(2, "expression", undefined));
+		expect(parse("12 ? 34")).toMatchErr(tokenError(3, ":", undefined));
+		expect(parse("12 ? 34 :")).toMatchErr(tokenError(4, "expression", undefined));
 	});
 
 	test("priority", () => {
