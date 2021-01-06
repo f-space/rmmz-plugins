@@ -148,10 +148,7 @@ test("error-message", () => {
 	const error = <T, E>(source: string, parser: PartialParser<T, E>) =>
 		R.mapErr(N.make(parser)(source), N.defaultErrorFormatter);
 
-	expect(error("foo", N.symbol("bar")))
-		.toEqualErr(`failed to parse token <<< 'bar' expected, but "foo" found`);
-	expect(error("foo", N.boolean))
-		.toEqualErr(`failed to parse token <<< 'boolean' expected, but "foo" found`);
-	expect(error("", N.symbol("bar")))
-		.toEqualErr(`failed to parse token <<< 'bar' expected, but no more letters found`);
+	expect(error("foo", N.symbol("bar"))).toEqualErr(`'bar' expected, but "foo" found`);
+	expect(error("foo", N.boolean)).toEqualErr(`'boolean' expected, but "foo" found`);
+	expect(error("", N.symbol("bar"))).toEqualErr(`'bar' expected, but no more letters found`);
 });

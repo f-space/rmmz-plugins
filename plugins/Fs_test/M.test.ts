@@ -1,7 +1,7 @@
 import "./JestExt";
 import Fs from "./Fs";
 
-const { O, R, S, N, M } = Fs;
+const { O, R, N, M } = Fs;
 
 type Meta = Fs.M.Meta;
 type Archetype = Fs.M.Archetype;
@@ -103,11 +103,12 @@ test("meta", () => {
 
 test("error-message", () => {
 	const error = <A extends Archetype>(meta: Meta, parser: A) =>
-		R.mapErr(M.make(parser)(meta), M.makeDefaultErrorFormatter(S.debug));
+		R.mapErr(M.make(parser)(meta), M.makeDefaultErrorFormatter(attributeErrorFormatter));
+	const attributeErrorFormatter = (error: string) => `failed to parse "${error}"`;
 
 	expect(error({ foo: "" }, M.flag("foo"))).toEqualErr(`'foo' metadata does not accept any arguments`);
 	expect(error({ foo: true }, M.attrN("foo", N.integer))).toEqualErr(`'foo' metadata is not a flag`);
 	expect(error({ foo: "foo" }, M.attr("foo", s => R.err(s))))
-		.toEqualErr(`failed to parse 'foo' metadata arguments <<< "foo"`);
+		.toEqualErr(`failed to parse 'foo' metadata arguments; failed to parse "foo"`);
 	expect(error({ foo: "foo" }, M.fail("bar"))).toEqualErr(`unknown error: "bar"`);
 });

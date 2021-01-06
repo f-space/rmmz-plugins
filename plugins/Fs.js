@@ -378,7 +378,7 @@
 
 		const parse = (source, parser, errorFormatter = defaultErrorFormatter) => R.expect(parser(source), errorFormatter);
 
-		const makeDefaultErrorFormatter = (tokenErrorFormatter, validationErrorFormatter) => error => {
+		const makeDefaultErrorFormatter = (tokenErrorFormatter, validationErrorFormatter) => {
 			const dots = s => S.ellipsis(s, 32);
 			const rest = ({ source: s, position: i }) => typeof s == 'string' ? dots(s.slice(i)) : S.debug(s[i]);
 			const pick = error => {
@@ -389,18 +389,20 @@
 			};
 			const message = error => {
 				switch (error?.type) {
-					case 'token': return `failed to parse token <<< ${tokenErrorFormatter(error.cause)}`;
+					case 'token': return tokenErrorFormatter(error.cause);
 					case 'eoi': return `excessive token exists: ${rest(error.context)}`;
 					case 'and': return `and-predicate failed: ${rest(error.context)}`;
 					case 'not': return `not-predicate failed: ${rest(error.context)}`;
-					case 'validation': return `validation failed <<< ${validationErrorFormatter(error.cause)}`;
+					case 'validation': return validationErrorFormatter(error.cause);
 					default: return `unknown error: ${S.debug(error)}`;
 				}
 			};
-			return message(pick(error));
+			return error => message(pick(error));
 		};
 
-		const defaultErrorFormatter = makeDefaultErrorFormatter(S.debug, S.debug);
+		const simpleErrorFormatter = error => typeof error === 'string' ? error : S.debug(error);
+
+		const defaultErrorFormatter = makeDefaultErrorFormatter(simpleErrorFormatter, simpleErrorFormatter);
 
 		return {
 			token,
@@ -886,12 +888,14 @@
 			switch (error?.type) {
 				case 'format': return `failed to parse parameter as '${error.expected}': ${dots(error.source)}`;
 				case 'json': return `failed to parse parameter as JSON: "${error.inner.message}"`;
-				case 'validation': return `validation failed <<< ${validationErrorFormatter(error.cause)}`;
+				case 'validation': return validationErrorFormatter(error.cause);
 				default: return `unknown error: ${S.debug(error)}`;
 			}
 		};
 
-		const defaultErrorFormatter = makeDefaultErrorFormatter(S.debug);
+		const simpleErrorFormatter = error => typeof error === 'string' ? error : S.debug(error);
+
+		const defaultErrorFormatter = makeDefaultErrorFormatter(simpleErrorFormatter);
 
 		return {
 			succeed,
@@ -997,7 +1001,9 @@
 		const makeDefaultErrorFormatter = validationErrorFormatter =>
 			G.makeDefaultErrorFormatter(defaultTokenErrorFormatter, validationErrorFormatter);
 
-		const defaultErrorFormatter = makeDefaultErrorFormatter(S.debug);
+		const simpleErrorFormatter = error => typeof error === 'string' ? error : S.debug(error);
+
+		const defaultErrorFormatter = makeDefaultErrorFormatter(simpleErrorFormatter);
 
 		return {
 			succeed,
@@ -1104,12 +1110,12 @@
 					}
 				case 'attribute':
 					const message = attributeErrorFormatter(error.cause);
-					return `failed to parse '${error.name}' metadata arguments <<< ${message}`;
+					return `failed to parse '${error.name}' metadata arguments; ${message}`;
 				default: return `unknown error: ${S.debug(error)}`;
 			}
 		};
 
-		const defaultErrorFormatter = makeDefaultErrorFormatter(N.makeDefaultErrorFormatter(S.debug));
+		const defaultErrorFormatter = makeDefaultErrorFormatter(N.defaultErrorFormatter);
 
 		return {
 			flag,
