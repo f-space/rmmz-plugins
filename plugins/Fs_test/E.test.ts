@@ -401,7 +401,7 @@ describe("other", () => {
 
 		expect(compileError("🐛")).toEqualErr(`'expression' expected, but "🐛" found`);
 		expect(compileError("")).toEqualErr(`'expression' expected, but no more tokens found`);
-		expect(compileError("foo bar")).toEqualErr(`unable to interpret "bar"`);
+		expect(compileError("foo bar")).toEqualErr(`end-of-input expected, but "bar" found`);
 
 		expect(runtimeError("foo", {})).toEqualErr(`"foo" not found`);
 		expect(runtimeError("foo.bar", { foo: {} })).toEqualErr(`"bar" property not exists`);

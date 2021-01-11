@@ -150,5 +150,5 @@ test("error-message", () => {
 
 	expect(error("foo", N.symbol("bar"))).toEqualErr(`'bar' expected, but "foo" found`);
 	expect(error("foo", N.boolean)).toEqualErr(`'boolean' expected, but "foo" found`);
-	expect(error("", N.symbol("bar"))).toEqualErr(`'bar' expected, but no more letters found`);
+	expect(error("", N.symbol("bar"))).toEqualErr(`'bar' expected, but no more characters found`);
 });

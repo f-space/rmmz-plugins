@@ -144,9 +144,9 @@ test("error-message", () => {
 	const validationErrorFormatter = (error: string) => `validation to "${error}" failed`;
 
 	expect(error("foo", str("bar"))).toEqualErr(`failed to parse 'bar' token`);
-	expect(error("foo", G.eoi())).toEqualErr(`excessive token exists: foo`);
-	expect(error("foo", G.and(str("bar"), G.succeed(0)))).toEqualErr(`and-predicate failed: foo`);
-	expect(error("foo", G.not(str("foo"), G.succeed(0)))).toEqualErr(`not-predicate failed: foo`);
+	expect(error("foo", G.eoi())).toEqualErr(`end-of-input expected, but "foo" found`);
+	expect(error("foo", G.and(str("bar"), G.succeed(0)))).toEqualErr(`and-predicate failed at "foo"`);
+	expect(error("foo", G.not(str("foo"), G.succeed(0)))).toEqualErr(`not-predicate failed at "foo"`);
 	expect(error("foo", G.validate(str("foo"), s => R.err(s)))).toEqualErr(`validation to "foo" failed`);
 	expect(error("foo", G.fail("bar"))).toEqualErr(`unknown error: "bar"`);
 

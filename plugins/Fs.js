@@ -379,8 +379,8 @@
 		const parse = (source, parser, errorFormatter = defaultErrorFormatter) => R.expect(parser(source), errorFormatter);
 
 		const makeDefaultErrorFormatter = (tokenErrorFormatter, validationErrorFormatter) => {
-			const dots = s => S.ellipsis(s, 32);
-			const rest = ({ source: s, position: i }) => typeof s == 'string' ? dots(s.slice(i)) : S.debug(s[i]);
+			const dots = s => S.ellipsis(s, 16);
+			const rest = ({ source: s, position: i }) => typeof s == 'string' ? `"${dots(s.slice(i))}"` : S.debug(s[i]);
 			const pick = error => {
 				const reduce = errors => errors.reduce((acc, e) => choice(acc, pick(e)), undefined);
 				const choice = (a, b) => priority(a) >= priority(b) ? a : b;
@@ -390,9 +390,9 @@
 			const message = error => {
 				switch (error?.type) {
 					case 'token': return tokenErrorFormatter(error.cause);
-					case 'eoi': return `excessive token exists: ${rest(error.context)}`;
-					case 'and': return `and-predicate failed: ${rest(error.context)}`;
-					case 'not': return `not-predicate failed: ${rest(error.context)}`;
+					case 'eoi': return `end-of-input expected, but ${rest(error.context)} found`;
+					case 'and': return `and-predicate failed at ${rest(error.context)}`;
+					case 'not': return `not-predicate failed at ${rest(error.context)}`;
 					case 'validation': return validationErrorFormatter(error.cause);
 					default: return `unknown error: ${S.debug(error)}`;
 				}
@@ -791,8 +791,8 @@
 			};
 			const formatEoiError = (source, error) => {
 				const { context: { source: tokens, position } } = error;
-				const token = restore(source, tokens[position]);
-				return `unable to interpret "${token}"`;
+				const found = `"${restore(source, tokens[position])}"`;
+				return `end-of-input expected, but ${found} found`;
 			};
 			switch (error?.type) {
 				case 'token': return formatTokenError(source, error);
@@ -886,8 +886,8 @@
 		const makeDefaultErrorFormatter = validationErrorFormatter => error => {
 			const dots = s => S.ellipsis(s, 32);
 			switch (error?.type) {
-				case 'format': return `failed to parse parameter as '${error.expected}': ${dots(error.source)}`;
-				case 'json': return `failed to parse parameter as JSON: "${error.inner.message}"`;
+				case 'format': return `'${error.expected}' expected, but "${dots(error.source)}" found`;
+				case 'json': return `failed to parse JSON with following error message; "${error.inner.message}"`;
 				case 'validation': return validationErrorFormatter(error.cause);
 				default: return `unknown error: ${S.debug(error)}`;
 			}
@@ -990,7 +990,7 @@
 
 		const defaultTokenErrorFormatter = error => {
 			const dots = s => S.ellipsis(s, 16);
-			const rest = ({ source: s, position: i }) => s.length === i ? "no more letters" : `"${dots(s.slice(i))}"`;
+			const rest = ({ source: s, position: i }) => s.length === i ? "no more characters" : `"${dots(s.slice(i))}"`;
 			switch (error?.type) {
 				case 'symbol': return `'${error.symbol}' expected, but ${rest(error)} found`;
 				case 'regexp': return `'${error.name}' expected, but ${rest(error)} found`;
@@ -1104,13 +1104,13 @@
 			switch (error?.type) {
 				case 'notation':
 					switch (error.expected) {
-						case 'flag': return `'${error.name}' metadata does not accept any arguments`;
-						case 'attr': return `'${error.name}' metadata is not a flag`;
+						case 'flag': return `'${error.name}' metadata does not require value`;
+						case 'attr': return `'${error.name}' metadata requires value`;
 						default: return `unknown metadata type: ${error.expected}`;
 					}
 				case 'attribute':
 					const message = attributeErrorFormatter(error.cause);
-					return `failed to parse '${error.name}' metadata arguments; ${message}`;
+					return `failed to parse '${error.name}' metadata value; ${message}`;
 				default: return `unknown error: ${S.debug(error)}`;
 			}
 		};

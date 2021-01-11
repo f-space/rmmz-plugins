@@ -106,9 +106,9 @@ test("error-message", () => {
 		R.mapErr(M.make(parser)(meta), M.makeDefaultErrorFormatter(attributeErrorFormatter));
 	const attributeErrorFormatter = (error: string) => `failed to parse "${error}"`;
 
-	expect(error({ foo: "" }, M.flag("foo"))).toEqualErr(`'foo' metadata does not accept any arguments`);
-	expect(error({ foo: true }, M.attrN("foo", N.integer))).toEqualErr(`'foo' metadata is not a flag`);
+	expect(error({ foo: "" }, M.flag("foo"))).toEqualErr(`'foo' metadata does not require value`);
+	expect(error({ foo: true }, M.attrN("foo", N.integer))).toEqualErr(`'foo' metadata requires value`);
 	expect(error({ foo: "foo" }, M.attr("foo", s => R.err(s))))
-		.toEqualErr(`failed to parse 'foo' metadata arguments; failed to parse "foo"`);
+		.toEqualErr(`failed to parse 'foo' metadata value; failed to parse "foo"`);
 	expect(error({ foo: "foo" }, M.fail("bar"))).toEqualErr(`unknown error: "bar"`);
 });
