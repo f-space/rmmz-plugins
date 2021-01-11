@@ -434,6 +434,10 @@
 	})();
 
 	const E = (() => {
+		const NUMBER = 'number';
+		const BOOLEAN = 'boolean';
+		const ANY = 'any';
+
 		const tokenize = (() => {
 			const RE_SPACING = /^[ \r\n]*/;
 			const RE_IDENTIFIER = /^[a-z$][a-z0-9$_]*/i;
@@ -632,9 +636,19 @@
 			const unary = liftL1;
 			const binary = liftL2;
 
-			const root = (source, node) => {
+			const root = (type, source, node) => {
+				const ensureType = typeContract(type);
 				const evalExpr = expression(source, node);
-				return env => isNumber(evalExpr(env));
+				return env => ensureType(evalExpr(env));
+			};
+
+			const typeContract = type => {
+				switch (type) {
+					case NUMBER: return isNumber;
+					case BOOLEAN: return isBoolean;
+					case ANY: return x => x;
+					default: throw new Error(`unsupported expression type: ${type}`);
+				}
 			};
 
 			const expression = (source, node) => {
@@ -769,10 +783,10 @@
 			return root;
 		})();
 
-		const compile = source => {
+		const compile = (type, source) => {
 			return R.match(
 				parse(tokenize(source)),
-				ast => R.ok(build(source, ast)),
+				ast => R.ok(build(type, source, ast)),
 				error => R.err({ source, error }),
 			);
 		};
@@ -783,8 +797,8 @@
 		const run = (evaluator, env, errorFormatter = defaultRuntimeErrorFormatter) =>
 			R.expect(evaluator(env), errorFormatter);
 
-		const interpret = (source, env, parseErrorFormatter, runtimeErrorFormatter) =>
-			run(expect(compile(source), parseErrorFormatter), env, runtimeErrorFormatter);
+		const interpret = (type, source, env, parseErrorFormatter, runtimeErrorFormatter) =>
+			run(expect(compile(type, source), parseErrorFormatter), env, runtimeErrorFormatter);
 
 		const defaultCompileErrorFormatter = ({ source, error }) => {
 			const restore = (source, token) => source.slice(token.start, token.end);
@@ -816,7 +830,20 @@
 			}
 		};
 
-		return { tokenize, parse, build, compile, expect, run, interpret, defaultCompileErrorFormatter, defaultRuntimeErrorFormatter };
+		return {
+			NUMBER,
+			BOOLEAN,
+			ANY,
+			tokenize,
+			parse,
+			build,
+			compile,
+			expect,
+			run,
+			interpret,
+			defaultCompileErrorFormatter,
+			defaultRuntimeErrorFormatter,
+		};
 	})();
 
 	const P = (() => {

@@ -263,6 +263,17 @@ declare namespace G {
 }
 
 declare namespace E {
+	const NUMBER: unique symbol;
+	const BOOLEAN: unique symbol;
+	const ANY: unique symbol;
+
+	export type ExpressionTypeMap = {
+		[NUMBER]: number;
+		[BOOLEAN]: boolean;
+		[ANY]: unknown;
+	};
+	export type ExpressionTypeKey = keyof ExpressionTypeMap;
+
 	export type Term = 'number' | 'identifier';
 	export type UnaryOperator = '+' | '-' | '!';
 	export type BinaryOperator = '+' | '-' | '*' | '/' | '%' | '**' | '===' | '!==' | '<=' | '>=' | '<' | '>' | '&&' | '||';
@@ -365,27 +376,31 @@ declare namespace E {
 	};
 
 	export type CompileError = { source: string, error: ParseError; };
-	export type CompileResult = R.Result<Evaluator, CompileError>;
-	export type Evaluator = (env: object) => R.Result<number, RuntimeError>;
+	export type CompileResult<T> = R.Result<Evaluator<T>, CompileError>;
+	export type Evaluator<T> = (env: object) => R.Result<T, RuntimeError>;
 	export type CompileErrorFormatter = (error: CompileError) => string;
 	export type RuntimeErrorFormatter = (error: RuntimeError) => string;
 
 	const tokenize: (source: string) => AnyToken[];
 	const parse: (source: readonly AnyToken[]) => R.Result<ExpressionNode, ParseError>;
-	const build: (source: string, node: ExpressionNode) => Evaluator;
-	const compile: (source: string) => CompileResult;
-	const expect: (result: CompileResult, errorFormatter?: CompileErrorFormatter) => Evaluator;
-	const run: (evaluator: Evaluator, env: object, errorFormatter?: RuntimeErrorFormatter) => number;
-	const interpret: (
+	const build: <K extends ExpressionTypeKey>(type: K, source: string, node: ExpressionNode) => Evaluator<ExpressionTypeMap[K]>;
+	const compile: <K extends ExpressionTypeKey>(type: K, source: string) => CompileResult<ExpressionTypeMap[K]>;
+	const expect: <T>(result: CompileResult<T>, errorFormatter?: CompileErrorFormatter) => Evaluator<T>;
+	const run: <T>(evaluator: Evaluator<T>, env: object, errorFormatter?: RuntimeErrorFormatter) => T;
+	const interpret: <K extends ExpressionTypeKey>(
+		type: K,
 		source: string,
 		env: object,
 		compileErrorFormatter?: CompileErrorFormatter,
 		runtimeErrorFormatter?: RuntimeErrorFormatter,
-	) => number;
+	) => ExpressionTypeMap[K];
 	const defaultCompileErrorFormatter: CompileErrorFormatter;
 	const defaultRuntimeErrorFormatter: RuntimeErrorFormatter;
 
 	export {
+		NUMBER,
+		BOOLEAN,
+		ANY,
 		tokenize,
 		parse,
 		build,
