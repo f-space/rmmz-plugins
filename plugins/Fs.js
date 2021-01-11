@@ -610,25 +610,26 @@
 			const blockedValue = value => VALUE_BLOCK_LIST.has(value) ? O.some(VALUE_BLOCK_LIST.get(value)) : O.none();
 			const restore = (source, token) => source.slice(token.start, token.end);
 
-			const type = (name, fn) => input => R.andThen(input, value => fn(value) ? R.ok(value) : R.err(typeError(name, value)));
+			const bind = fn => a => R.andThen(a, fn);
+			const bindL2 = fn => (a, b) => R.andThen(a(), a => R.andThen(b(), b => fn(a, b)));
+			const liftL1 = fn => a => R.map(a(), a => fn(a));
+			const liftL2 = fn => (a, b) => R.andThen(a(), a => R.map(b(), b => fn(a, b)));
+			const liftL3 = fn => (a, b, c) => R.andThen(a(), a => R.andThen(b(), b => R.map(c(), c => fn(a, b, c))));
+
+			const type = (name, fn) => bind(value => fn(value) ? R.ok(value) : R.err(typeError(name, value)));
 			const isNumber = type('number', value => typeof value === 'number');
 			const isBoolean = type('boolean', value => typeof value === 'boolean');
 			const isFunction = type('function', value => typeof value === 'function');
 			const isObject = type('object', value => (typeof value === 'object' && value !== null) || typeof value === 'function');
 			const isArray = type('array', value => Array.isArray(value));
+			const secure = bind(value => O.match(blockedValue(value), target => R.err(securityError(target)), () => R.ok(value)));
 
-			const bind1 = fn => a => R.andThen(a, a => fn(a));
-			const bind2 = fn => (a, b) => R.andThen(R.all([a, b]), ([a, b]) => fn(a, b));
-			const lift1 = fn => a => R.map(a, a => fn(a));
-			const lift2 = fn => (a, b) => R.map(R.all([a, b]), ([a, b]) => fn(a, b));
-			const lift3 = fn => (a, b, c) => R.map(R.all([a, b, c]), ([a, b, c]) => fn(a, b, c));
-			const member = bind2((object, property) => property in object ? R.ok(object[property]) : R.err(propertyError(property)));
-			const element = bind2((array, index) => index >= 0 && index < array.length ? R.ok(array[index]) : R.err(rangeError(index)));
-			const call = lift2((fn, args) => fn(...args));
-			const callMember = lift3((fn, this_, args) => fn.apply(this_, args));
-			const unary = (fn, a) => lift1(fn)(a);
-			const binary = (fn, a, b) => lift2(fn)(a, b);
-			const secure = bind1(value => O.match(blockedValue(value), target => R.err(securityError(target)), () => R.ok(value)));
+			const member = bindL2((object, property) => property in object ? R.ok(object[property]) : R.err(propertyError(property)));
+			const element = bindL2((array, index) => index >= 0 && index < array.length ? R.ok(array[index]) : R.err(rangeError(index)));
+			const callStatic = liftL2((fn, args) => fn(...args));
+			const callMember = liftL3((this_, fn, args) => fn.apply(this_, args));
+			const unary = liftL1;
+			const binary = liftL2;
 
 			const root = (source, node) => {
 				const evalExpr = expression(source, node);
@@ -676,7 +677,7 @@
 					evalExpr: O.match(
 						blockedMember(property),
 						target => () => R.err(securityError(target)),
-						() => this_ => secure(member(isObject(this_), R.ok(property))),
+						() => this_ => secure(member(() => isObject(this_), () => R.ok(property))),
 					),
 				};
 			};
@@ -690,7 +691,7 @@
 				const evalIndex = expression(source, node.index);
 				return {
 					evalThis: evalArray,
-					evalExpr: (this_, env) => secure(element(isArray(this_), isNumber(evalIndex(env)))),
+					evalExpr: (this_, env) => secure(element(() => isArray(this_), () => isNumber(evalIndex(env)))),
 				};
 			};
 
@@ -710,15 +711,15 @@
 			};
 			const functionArgs = (source, nodes) => {
 				const evalList = nodes.map(node => expression(source, node));
-				return env => R.all(evalList.map(evalArg => evalArg(env)));
+				return env => R.allL(evalList.map(evalArg => () => evalArg(env)));
 			};
 			const functionStaticCall = (evalCallee, evalArgs) => {
-				return env => secure(call(isFunction(evalCallee(env)), evalArgs(env)));
+				return env => secure(callStatic(() => isFunction(evalCallee(env)), () => evalArgs(env)));
 			};
 			const functionMemberCall = (evalThis, evalExpr, evalArgs) => {
 				return env => {
 					const this_ = evalThis(env);
-					return secure(callMember(isFunction(evalExpr(this_, env)), this_, evalArgs(env)));
+					return secure(callMember(() => this_, () => isFunction(evalExpr(this_, env)), () => evalArgs(env)));
 				};
 			};
 
@@ -726,9 +727,9 @@
 				const operator = restore(source, node.operator);
 				const evalExpr = expression(source, node.expr);
 				switch (operator) {
-					case '+': return env => unary(a => +a, isNumber(evalExpr(env)));
-					case '-': return env => unary(a => -a, isNumber(evalExpr(env)));
-					case '!': return env => unary(a => !a, isBoolean(evalExpr(env)));
+					case '+': return env => unary(a => +a)(() => isNumber(evalExpr(env)));
+					case '-': return env => unary(a => -a)(() => isNumber(evalExpr(env)));
+					case '!': return env => unary(a => !a)(() => isBoolean(evalExpr(env)));
 					default: throw new Error(`unsupported unary operator: ${operator}`);
 				}
 			};
@@ -738,18 +739,18 @@
 				const evalL = expression(source, node.lhs);
 				const evalR = expression(source, node.rhs);
 				switch (operator) {
-					case '+': return env => binary((a, b) => a + b, isNumber(evalL(env)), isNumber(evalR(env)));
-					case '-': return env => binary((a, b) => a - b, isNumber(evalL(env)), isNumber(evalR(env)));
-					case '*': return env => binary((a, b) => a * b, isNumber(evalL(env)), isNumber(evalR(env)));
-					case '/': return env => binary((a, b) => a / b, isNumber(evalL(env)), isNumber(evalR(env)));
-					case '%': return env => binary((a, b) => a % b, isNumber(evalL(env)), isNumber(evalR(env)));
-					case '**': return env => binary((a, b) => a ** b, isNumber(evalL(env)), isNumber(evalR(env)));
-					case '===': return env => binary((a, b) => a === b, isNumber(evalL(env)), isNumber(evalR(env)));
-					case '!==': return env => binary((a, b) => a !== b, isNumber(evalL(env)), isNumber(evalR(env)));
-					case '<=': return env => binary((a, b) => a <= b, isNumber(evalL(env)), isNumber(evalR(env)));
-					case '>=': return env => binary((a, b) => a >= b, isNumber(evalL(env)), isNumber(evalR(env)));
-					case '<': return env => binary((a, b) => a < b, isNumber(evalL(env)), isNumber(evalR(env)));
-					case '>': return env => binary((a, b) => a > b, isNumber(evalL(env)), isNumber(evalR(env)));
+					case '+': return env => binary((a, b) => a + b)(() => isNumber(evalL(env)), () => isNumber(evalR(env)));
+					case '-': return env => binary((a, b) => a - b)(() => isNumber(evalL(env)), () => isNumber(evalR(env)));
+					case '*': return env => binary((a, b) => a * b)(() => isNumber(evalL(env)), () => isNumber(evalR(env)));
+					case '/': return env => binary((a, b) => a / b)(() => isNumber(evalL(env)), () => isNumber(evalR(env)));
+					case '%': return env => binary((a, b) => a % b)(() => isNumber(evalL(env)), () => isNumber(evalR(env)));
+					case '**': return env => binary((a, b) => a ** b)(() => isNumber(evalL(env)), () => isNumber(evalR(env)));
+					case '===': return env => binary((a, b) => a === b)(() => isNumber(evalL(env)), () => isNumber(evalR(env)));
+					case '!==': return env => binary((a, b) => a !== b)(() => isNumber(evalL(env)), () => isNumber(evalR(env)));
+					case '<=': return env => binary((a, b) => a <= b)(() => isNumber(evalL(env)), () => isNumber(evalR(env)));
+					case '>=': return env => binary((a, b) => a >= b)(() => isNumber(evalL(env)), () => isNumber(evalR(env)));
+					case '<': return env => binary((a, b) => a < b)(() => isNumber(evalL(env)), () => isNumber(evalR(env)));
+					case '>': return env => binary((a, b) => a > b)(() => isNumber(evalL(env)), () => isNumber(evalR(env)));
 					case '&&': return env => R.andThen(isBoolean(evalL(env)), value => value ? isBoolean(evalR(env)) : R.ok(false));
 					case '||': return env => R.andThen(isBoolean(evalL(env)), value => value ? R.ok(true) : isBoolean(evalR(env)));
 					default: throw new Error(`unsupported binary operator: ${operator}`);
