@@ -273,7 +273,8 @@ describe("build", () => {
 		expect(eval_("foo[bar]", { foo: [12, 34, 56, 78, 90], bar: 3 })).toEqualOk(78);
 		expect(eval_("foo[0]", { foo: { "0": 42 } })).toMatchErr(typeError('array', { "0": 42 }));
 		expect(eval_("foo[3]", { foo: [0, 1, 2] })).toMatchErr(rangeError(3));
-		expect(eval_("foo[bar]", { foo: [], bar: "__proto__" })).toMatchErr(typeError('number', "__proto__"));
+		expect(eval_("foo[bar]", { foo: [], bar: "__proto__" })).toMatchErr(typeError('integer', "__proto__"));
+		expect(eval_("foo[bar]", { foo: [], bar: 3.14 })).toMatchErr(typeError('integer', 3.14));
 	});
 
 	test("function-call", () => {

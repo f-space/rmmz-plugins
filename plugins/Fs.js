@@ -618,6 +618,7 @@
 
 			const type = (name, fn) => bind(value => fn(value) ? R.ok(value) : R.err(typeError(name, value)));
 			const isNumber = type('number', value => typeof value === 'number');
+			const isInteger = type('integer', value => typeof value === 'number' && Number.isSafeInteger(value));
 			const isBoolean = type('boolean', value => typeof value === 'boolean');
 			const isFunction = type('function', value => typeof value === 'function');
 			const isObject = type('object', value => (typeof value === 'object' && value !== null) || typeof value === 'function');
@@ -691,7 +692,7 @@
 				const evalIndex = expression(source, node.index);
 				return {
 					evalThis: evalArray,
-					evalExpr: (this_, env) => secure(element(() => isArray(this_), () => isNumber(evalIndex(env)))),
+					evalExpr: (this_, env) => secure(element(() => isArray(this_), () => isInteger(evalIndex(env)))),
 				};
 			};
 

@@ -356,7 +356,7 @@ declare namespace E {
 	};
 	export type TypeError = {
 		type: 'type';
-		expected: 'number' | 'boolean' | 'object' | 'function' | 'array';
+		expected: 'number' | 'integer' | 'boolean' | 'object' | 'function' | 'array';
 		actual: unknown;
 	};
 	export type SecurityError = {
