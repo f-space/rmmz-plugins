@@ -59,3 +59,17 @@ test("zip", () => {
 	expect(O.zip([O.some(0), O.none(), O.some(2)])).toEqual(O.none());
 	expect(O.zip([O.some(0), O.some(1), O.some(2)])).toEqual(O.some([0, 1, 2]));
 });
+
+test("zipL", () => {
+	expect(O.zipL([])).toEqual(O.some([]));
+	expect(O.zipL([() => O.none()])).toEqual(O.none());
+	expect(O.zipL([() => O.some(0)])).toEqual(O.some([0]));
+	expect(O.zipL([() => O.none(), () => O.none()])).toEqual(O.none());
+	expect(O.zipL([() => O.none(), () => O.some(1)])).toEqual(O.none());
+	expect(O.zipL([() => O.some(0), () => O.none()])).toEqual(O.none());
+	expect(O.zipL([() => O.some(0), () => O.some(1)])).toEqual(O.some([0, 1]));
+	expect(O.zipL([() => O.none(), () => O.none(), () => O.none()])).toEqual(O.none());
+	expect(O.zipL([() => O.none(), () => O.some(1), () => O.none()])).toEqual(O.none());
+	expect(O.zipL([() => O.some(0), () => O.none(), () => O.some(2)])).toEqual(O.none());
+	expect(O.zipL([() => O.some(0), () => O.some(1), () => O.some(2)])).toEqual(O.some([0, 1, 2]));
+});

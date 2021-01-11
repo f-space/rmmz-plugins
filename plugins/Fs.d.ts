@@ -1,8 +1,11 @@
 type IncludesNever<T extends any[]> =
 	T extends readonly [infer F, ...infer R] ? (F extends never ? true : IncludesNever<R>) : false;
 
+type Lazy<T> = () => T;
+
 declare global {
 	namespace Fs {
+		export { Lazy };
 		export { O, R, L, S, U, G, E, P, N, M, Z };
 	}
 }
@@ -19,6 +22,10 @@ declare namespace O {
 	type ZipRec<A, T extends any[]> = A extends readonly [Option<infer U>, ...infer Rest]
 		? ZipRec<Rest, [...T, U]>
 		: Option<T>;
+	type ZipL<A> = ZipRecL<A, []>;
+	type ZipRecL<A, T extends any[]> = A extends readonly [Lazy<Option<infer U>>, ...infer Rest]
+		? ZipRecL<Rest, [...T, U]>
+		: Option<T>;
 
 	const some: <T>(value: T) => Some<T>;
 	const none: () => None;
@@ -32,8 +39,9 @@ declare namespace O {
 	const withDefault: <T>(option: Option<T>, value: T) => T;
 	const map: <T, U>(option: Option<T>, fn: (value: T) => U) => Option<U>;
 	const zip: <A extends readonly Option<any>[]>(options: readonly [...A]) => Zip<A>;
+	const zipL: <A extends readonly Lazy<Option<any>>[]>(options: readonly [...A]) => ZipL<A>;
 
-	export { some, none, unwrap, isSome, isNone, andThen, orElse, match, expect, withDefault, map, zip };
+	export { some, none, unwrap, isSome, isNone, andThen, orElse, match, expect, withDefault, map, zip, zipL };
 }
 
 declare namespace R {
@@ -52,6 +60,14 @@ declare namespace R {
 	type AnyRec<A, T, E extends any[]> = A extends readonly [Result<infer U, infer F>, ...infer Rest]
 		? AnyRec<Rest, T | U, [...E, F]>
 		: Result<T, E>;
+	type AllL<A> = AllRecL<A, [], never>;
+	type AllRecL<A, T extends any[], E> = A extends readonly [Lazy<Result<infer U, infer F>>, ...infer Rest]
+		? AllRecL<Rest, [...T, U], E | F>
+		: Result<T, E>;
+	type AnyL<A> = AnyRecL<A, never, []>;
+	type AnyRecL<A, T, E extends any[]> = A extends readonly [Lazy<Result<infer U, infer F>>, ...infer Rest]
+		? AnyRecL<Rest, T | U, [...E, F]>
+		: Result<T, E>;
 
 	const ok: <T>(value: T) => Ok<T>;
 	const err: <E>(error: E) => Err<E>;
@@ -68,8 +84,10 @@ declare namespace R {
 	const mapErr: <T, E, F>(result: Result<T, E>, fn: (error: E) => F) => Result<T, F>;
 	const all: <A extends readonly Result<any, any>[]>(results: readonly [...A]) => All<A>;
 	const any: <A extends readonly Result<any, any>[]>(results: readonly [...A]) => Any<A>;
+	const allL: <A extends readonly Lazy<Result<any, any>>[]>(results: readonly [...A]) => AllL<A>;
+	const anyL: <A extends readonly Lazy<Result<any, any>>[]>(results: readonly [...A]) => AnyL<A>;
 
-	export { ok, err, unwrap, unwrapErr, isOk, isErr, andThen, orElse, match, expect, attempt, map, mapErr, all, any };
+	export { ok, err, unwrap, unwrapErr, isOk, isErr, andThen, orElse, match, expect, attempt, map, mapErr, all, any, allL, anyL };
 }
 
 declare namespace L {

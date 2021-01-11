@@ -103,8 +103,10 @@
 		const map = (monad, fn) => bind(monad, value => unit(fn(value)));
 		const zip = monads => zipRec(monads, []);
 		const zipRec = (ms, xs) => ms.length !== 0 ? bind(ms[0], x => zipRec(ms.slice(1), [...xs, x])) : unit(xs);
+		const zipL = monads => zipLRec(monads, []);
+		const zipLRec = (ms, xs) => ms.length !== 0 ? bind(ms[0](), x => zipLRec(ms.slice(1), [...xs, x])) : unit(xs);
 
-		return { map, zip };
+		return { map, zip, zipL };
 	};
 
 	const throw_ = message => { throw new Error(message); };
@@ -121,9 +123,9 @@
 		const match = (option, onSome, onNone) => isSome(option) ? onSome(unwrap(option)) : onNone();
 		const expect = (option, formatter) => isSome(option) ? unwrap(option) : throw_(formatter());
 		const withDefault = (option, value) => isSome(option) ? unwrap(option) : value;
-		const { map, zip } = Monad(some, andThen);
+		const { map, zip, zipL } = Monad(some, andThen);
 
-		return { some, none, unwrap, isSome, isNone, andThen, orElse, match, expect, withDefault, map, zip };
+		return { some, none, unwrap, isSome, isNone, andThen, orElse, match, expect, withDefault, map, zip, zipL };
 	})();
 
 	const R = (() => {
@@ -138,10 +140,10 @@
 		const match = (result, onOk, onErr) => isOk(result) ? onOk(unwrap(result)) : onErr(unwrapErr(result));
 		const expect = (result, formatter) => isOk(result) ? unwrap(result) : throw_(formatter(unwrapErr(result)));
 		const attempt = fn => try_(() => ok(fn()), err);
-		const { map: map, zip: all } = Monad(ok, andThen);
-		const { map: mapErr, zip: any } = Monad(err, orElse);
+		const { map: map, zip: all, zipL: allL } = Monad(ok, andThen);
+		const { map: mapErr, zip: any, zipL: anyL } = Monad(err, orElse);
 
-		return { ok, err, unwrap, unwrapErr, isOk, isErr, andThen, orElse, match, expect, attempt, map, mapErr, all, any };
+		return { ok, err, unwrap, unwrapErr, isOk, isErr, andThen, orElse, match, expect, attempt, map, mapErr, all, any, allL, anyL };
 	})();
 
 	const L = (() => {
@@ -844,17 +846,14 @@
 
 		const json = s => R.mapErr(R.attempt(() => JSON.parse(s)), e => jsonError(s, e));
 		const array = parser => andThen(json, value => s =>
-			Array.isArray(value)
-				? value.reduce((result, x) => R.andThen(result, xs => R.map(parser(x), x => [...xs, x])), R.ok([]))
-				: R.err(formatError(s, "array"))
+			Array.isArray(value) ? R.allL(value.map(x => () => parser(x))) : R.err(formatError(s, "array"))
 		);
 		const struct = parsers => andThen(json, value => s =>
 			typeof value === 'object' && value !== null && !Array.isArray(value)
 				? R.map(entries(parsers)(value), Object.fromEntries)
 				: R.err(formatError(s, "struct"))
 		);
-		const entries = parsers => object =>
-			parsers.reduce((result, parser) => R.andThen(result, xs => R.map(parser(object), x => [...xs, x])), R.ok([]));
+		const entries = parsers => object => R.allL(parsers.map(parser => () => parser(object)));
 		const entry = (key, parser) => object => map(parser, value => [key, value])(object[key] ?? "");
 
 		const make = archetype => {

@@ -83,3 +83,31 @@ test("any", () => {
 	expect(R.any([R.err(0), R.ok(1), R.err(2)])).toEqual(R.ok(1));
 	expect(R.any([R.err(0), R.err(1), R.err(2)])).toEqual(R.err([0, 1, 2]));
 });
+
+test("allL", () => {
+	expect(R.allL([])).toEqual(R.ok([]));
+	expect(R.allL([() => R.err(0)])).toEqual(R.err(0));
+	expect(R.allL([() => R.ok(0)])).toEqual(R.ok([0]));
+	expect(R.allL([() => R.err(0), () => R.err(1)])).toEqual(R.err(0));
+	expect(R.allL([() => R.err(0), () => R.ok(1)])).toEqual(R.err(0));
+	expect(R.allL([() => R.ok(0), () => R.err(1)])).toEqual(R.err(1));
+	expect(R.allL([() => R.ok(0), () => R.ok(1)])).toEqual(R.ok([0, 1]));
+	expect(R.allL([() => R.err(0), () => R.err(1), () => R.err(2)])).toEqual(R.err(0));
+	expect(R.allL([() => R.err(0), () => R.ok(1), () => R.err(2)])).toEqual(R.err(0));
+	expect(R.allL([() => R.ok(0), () => R.err(1), () => R.ok(2)])).toEqual(R.err(1));
+	expect(R.allL([() => R.ok(0), () => R.ok(1), () => R.ok(2)])).toEqual(R.ok([0, 1, 2]));
+});
+
+test("anyL", () => {
+	expect(R.anyL([])).toEqual(R.err([]));
+	expect(R.anyL([() => R.ok(0)])).toEqual(R.ok(0));
+	expect(R.anyL([() => R.err(0)])).toEqual(R.err([0]));
+	expect(R.anyL([() => R.ok(0), () => R.ok(1)])).toEqual(R.ok(0));
+	expect(R.anyL([() => R.ok(0), () => R.err(1)])).toEqual(R.ok(0));
+	expect(R.anyL([() => R.err(0), () => R.ok(1)])).toEqual(R.ok(1));
+	expect(R.anyL([() => R.err(0), () => R.err(1)])).toEqual(R.err([0, 1]));
+	expect(R.anyL([() => R.ok(0), () => R.ok(1), () => R.ok(2)])).toEqual(R.ok(0));
+	expect(R.anyL([() => R.ok(0), () => R.err(1), () => R.ok(2)])).toEqual(R.ok(0));
+	expect(R.anyL([() => R.err(0), () => R.ok(1), () => R.err(2)])).toEqual(R.ok(1));
+	expect(R.anyL([() => R.err(0), () => R.err(1), () => R.err(2)])).toEqual(R.err([0, 1, 2]));
+});
