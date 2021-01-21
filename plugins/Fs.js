@@ -459,6 +459,7 @@
 				`(?:${RE_BINARY_INTEGER_LITERAL}|${RE_OCTAL_INTEGER_LITERAL}|${RE_HEX_INTEGER_LITERAL})`;
 			const RE_NUMERIC_LITERAL = `(?:${RE_DECIMAL_LITERAL}|${RE_NON_DECIMAL_INTEGER_LITERAL})`;
 			const RE_NUMBER = new RegExp(`^${RE_NUMERIC_LITERAL}`);
+			const RE_BOOLEAN = /^(?:true|false)\b/;
 			const RE_UNKNOWN = /^(?:[a-z0-9$_]+|[\p{L}\p{N}\p{Pc}\p{M}\p{Cf}]+|[\p{P}\p{S}]+|[^ \t\r\n]+)/iu;
 
 			const next = (type, text, position) => [{ type, text, position }, position + text.length];
@@ -499,12 +500,14 @@
 				"whitespace": regexp("whitespace", RE_WHITESPACE),
 				"identifier": regexp("identifier", RE_IDENTIFIER),
 				"number": regexp("number", RE_NUMBER),
+				"boolean": regexp("boolean", RE_BOOLEAN),
 				"unknown": regexp("unknown", RE_UNKNOWN),
 			};
 		})();
 
 		const parser = (() => {
 			const numberNode = value => ({ type: 'number', value });
+			const booleanNode = value => ({ type: 'boolean', value });
 			const identifierNode = name => ({ type: 'identifier', name });
 			const memberAccessNode = (object, property) => ({ type: 'member-access', object, property });
 			const elementAccessNode = (array, index) => ({ type: 'element-access', array, index });
@@ -517,7 +520,7 @@
 			const fail = type => G.token(() => R.err(type));
 
 			const number = G.map(token("number"), value => numberNode(value));
-
+			const boolean = G.map(token("boolean"), value => booleanNode(value));
 			const identifier = G.map(token("identifier"), name => identifierNode(name));
 
 			const group = (term, expr) => {
@@ -601,7 +604,7 @@
 			};
 
 			const expression = G.ref(() => exprL0);
-			const exprL11 = G.memo(G.orElse(G.orElse(identifier, () => number), () => fail('expression')));
+			const exprL11 = G.memo(G.orElse(G.oneOf([number, boolean, identifier]), () => fail('expression')));
 			const exprL10 = G.memo(group(exprL11, expression));
 			const exprL9 = G.memo(postfixOp(exprL10, expression));
 			const exprL8 = G.memo(unaryOp(exprL9, G.oneOf(["+", "-", "!"].map(token))));
@@ -685,6 +688,7 @@
 				const { type } = node;
 				switch (type) {
 					case 'number': return number(node);
+					case 'boolean': return boolean(node);
 					case 'identifier': return identifier(node);
 					case 'member-access': return memberAccess(node);
 					case 'element-access': return elementAccess(node);
@@ -698,6 +702,11 @@
 
 			const number = node => {
 				const value = Number(node.value.text.replace(/_/g, ""));
+				return () => R.ok(value);
+			};
+
+			const boolean = node => {
+				const value = node.value.text === 'true';
 				return () => R.ok(value);
 			};
 

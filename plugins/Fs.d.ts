@@ -280,7 +280,7 @@ declare namespace E {
 	export type Type = keyof TypeMap;
 	export type Eval<T> = T extends Type ? TypeMap[T] : never;
 
-	export type Term = 'number' | 'identifier';
+	export type Term = 'number' | 'boolean' | 'identifier';
 	export type UnaryOperator = '+' | '-' | '!';
 	export type BinaryOperator = '+' | '-' | '*' | '/' | '%' | '**' | '===' | '!==' | '<=' | '>=' | '<' | '>' | '&&' | '||';
 	export type OtherSymbol = '(' | ')' | '[' | ']' | ',' | '.' | '?' | ':';
@@ -299,12 +299,17 @@ declare namespace E {
 	};
 	export type AnyToken = Token<TokenType>;
 	export type NumberToken = Token<'number'>;
+	export type BooleanToken = Token<'boolean'>;
 	export type IdentifierToken = Token<'identifier'>;
 	export type UnknownToken = Token<'unknown'>;
 
 	export type NumberNode = {
 		type: 'number';
 		value: NumberToken;
+	};
+	export type BooleanNode = {
+		type: 'boolean';
+		value: BooleanToken;
 	};
 	export type IdentifierNode = {
 		type: 'identifier';
@@ -344,6 +349,7 @@ declare namespace E {
 	};
 	export type AstNode =
 		| NumberNode
+		| BooleanNode
 		| IdentifierNode
 		| MemberAccessNode
 		| ElementAccessNode

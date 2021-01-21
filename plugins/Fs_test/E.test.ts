@@ -12,6 +12,7 @@ describe("token", () => {
 	const whitespace = (source: string) => G.mk(E.Lexer.whitespace)(source);
 	const symbol = <S extends Symbol>(symbol: S) => G.mk(E.Lexer[symbol] as Lexer<S>)(symbol);
 	const number = (source: string) => G.mk(E.Lexer.number)(source);
+	const boolean = (source: string) => G.mk(E.Lexer.boolean)(source);
 	const identifier = (source: string) => G.mk(E.Lexer.identifier)(source);
 	const unknown = (source: string) => G.mk(E.Lexer.unknown)(source);
 
@@ -102,6 +103,13 @@ describe("token", () => {
 		expect(number("0x_0")).not.toEqualOk(token('number', "0x_0", 0));
 	});
 
+	test("boolean", () => {
+		expect(boolean("true")).toEqualOk(token('boolean', "true", 0));
+		expect(boolean("false")).toEqualOk(token('boolean', "false", 0));
+		expect(boolean("truee")).not.toEqualOk(token('boolean', "true", 0));
+		expect(boolean("falsee")).not.toEqualOk(token('boolean', "false", 0));
+	});
+
 	test("identifier", () => {
 		expect(identifier("foo")).toEqualOk(token('identifier', "foo", 0));
 		expect(identifier("abc$123_XYZ")).toEqualOk(token('identifier', "abc$123_XYZ", 0));
@@ -138,6 +146,7 @@ describe("parse", () => {
 		const rec = (node: AstNode): Node => {
 			switch (node.type) {
 				case 'number': return num(node.value.text);
+				case 'boolean': return bool(node.value.text);
 				case 'identifier': return id(node.name.text);
 				case 'member-access': return member(rec(node.object), id(node.property.name.text));
 				case 'element-access': return elem(rec(node.array), rec(node.index));
@@ -152,6 +161,7 @@ describe("parse", () => {
 	};
 
 	const num = (value: string) => ({ type: 'number' as const, value });
+	const bool = (value: string) => ({ type: 'boolean' as const, value });
 	const id = (name: string) => ({ type: 'identifier' as const, name });
 	const member = (object: Node, property: Identifier) => ({ type: 'member-access' as const, object, property });
 	const elem = (array: Node, index: Node) => ({ type: 'element-access' as const, array, index });
@@ -166,6 +176,7 @@ describe("parse", () => {
 
 	test("term", () => {
 		expect(parse("42")).toEqualOk(num("42"));
+		expect(parse("true")).toEqualOk(bool("true"));
 		expect(parse("foo")).toEqualOk(id("foo"));
 	});
 
@@ -300,6 +311,11 @@ describe("build", () => {
 		expect(evalAny("0XF", {})).toEqualOk(0XF);
 		expect(evalAny("0x2a", {})).toEqualOk(0x2a);
 		expect(evalAny("0x0_0_2_a", {})).toEqualOk(0x0_0_2_a);
+	});
+
+	test("boolean", () => {
+		expect(evalAny("true", {})).toEqualOk(true);
+		expect(evalAny("false", {})).toEqualOk(false);
 	});
 
 	test("identifier", () => {
