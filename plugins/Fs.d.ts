@@ -271,12 +271,14 @@ declare namespace E {
 	const BOOLEAN: unique symbol;
 	const ANY: unique symbol;
 
-	export type TypeMap = {
+	type TypeMap = {
 		[NUMBER]: number;
 		[BOOLEAN]: boolean;
 		[ANY]: unknown;
 	};
+
 	export type Type = keyof TypeMap;
+	export type Eval<T extends Type> = TypeMap[T];
 
 	export type Term = 'number' | 'identifier';
 	export type UnaryOperator = '+' | '-' | '!';
@@ -391,8 +393,8 @@ declare namespace E {
 	const Lexer: { [P in TokenType | 'spacing']: Tokenizer<P> };
 	const parser: Parser;
 	const parse: (source: string) => R.Result<AstNode, ParseError>;
-	const build: <T extends Type>(type: T, source: string, node: AstNode) => Evaluator<TypeMap[T]>;
-	const compile: <T extends Type>(type: T, source: string) => CompileResult<TypeMap[T]>;
+	const build: <T extends Type>(type: T, source: string, node: AstNode) => Evaluator<Eval<T>>;
+	const compile: <T extends Type>(type: T, source: string) => CompileResult<Eval<T>>;
 	const expect: <T>(result: CompileResult<T>, errorFormatter?: CompileErrorFormatter) => Evaluator<T>;
 	const run: <T>(evaluator: Evaluator<T>, env: object, errorFormatter?: RuntimeErrorFormatter) => T;
 	const interpret: <T extends Type>(
@@ -401,7 +403,7 @@ declare namespace E {
 		env: object,
 		compileErrorFormatter?: CompileErrorFormatter,
 		runtimeErrorFormatter?: RuntimeErrorFormatter,
-	) => TypeMap[T];
+	) => Eval<T>;
 	const defaultCompileErrorFormatter: CompileErrorFormatter;
 	const defaultRuntimeErrorFormatter: RuntimeErrorFormatter;
 
@@ -485,7 +487,7 @@ declare namespace P {
 	const struct: <P extends readonly EntryParser<any, any, any>[]>(parsers: readonly [...P]) => Struct<P>;
 	const entry: <K extends string, T, E>(key: K, parser: Parser<T, E>) => EntryParser<K, T, E>;
 	const expression: <T extends E.Type>(type: T, errorFormatter?: E.RuntimeErrorFormatter)
-		=> Parser<Expression<E.TypeMap[T]>, ExpressionError>;
+		=> Parser<Expression<E.Eval<T>>, ExpressionError>;
 	const make: <A extends Archetype>(archetype: A) => Make<A>;
 	const parse: <T, E>(s: string, parser: Parser<T, E>, errorFormatter?: ErrorFormatter<E>) => T;
 	const parseAll: <P extends { [key: string]: Parser<any, any>; }>(
@@ -574,7 +576,7 @@ declare namespace N {
 	const regexp: <T = string>(name: string, re: RegExp, fn?: (...captures: string[]) => T)
 		=> PartialParser<T, TokenError<RegexpError>>;
 	const expression: <T extends E.Type>(type: T, errorFormatter?: E.RuntimeErrorFormatter)
-		=> PartialParser<Expression<E.TypeMap[T]>, TokenError<ExpressionError>>;
+		=> PartialParser<Expression<E.Eval<T>>, TokenError<ExpressionError>>;
 	const spacing: PartialParser<string, never>;
 	const spaces: PartialParser<string, TokenError<RegexpError>>;
 	const natural: PartialParser<number, TokenError<RegexpError>>;
