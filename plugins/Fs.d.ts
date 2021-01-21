@@ -570,7 +570,7 @@ declare namespace N {
 	const oneOf: <P extends readonly PartialParser<any, any>[]>(parsers: readonly [...P]) => OneOf<P>;
 	const validate: <T, U, E, V>(parser: PartialParser<T, E>, validator: Validator<T, U, V>)
 		=> PartialParser<U, E | ValidationError<V>>;
-	const symbol: <S extends string>(s: S) => PartialParser<S, TokenError<SymbolError>>;
+	const symbol: <S extends string>(symbol: S) => PartialParser<S, TokenError<SymbolError>>;
 	const regexp: <T = string>(name: string, re: RegExp, fn?: (...captures: string[]) => T)
 		=> PartialParser<T, TokenError<RegexpError>>;
 	const expression: <K extends E.ExpressionTypeKey>(type: K, errorFormatter?: E.RuntimeErrorFormatter)
