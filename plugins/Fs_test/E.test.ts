@@ -90,18 +90,18 @@ describe("token", () => {
 describe("parse", () => {
 	type ExtTokenType = Fs.E.ExtTokenType;
 	type AnyToken = Fs.E.AnyToken;
-	type ExpressionNode = Fs.E.ExpressionNode;
+	type AstNode = Fs.E.AstNode;
 	type IdentifierNode = Fs.E.IdentifierNode;
 
 	type ReplaceToken<T> = { [P in keyof T]: T[P] extends AnyToken ? string : ReplaceToken<T[P]> };
-	type Node = ReplaceToken<ExpressionNode>;
+	type Node = ReplaceToken<AstNode>;
 	type Identifier = ReplaceToken<IdentifierNode>;
 
 	const parse = (s: string) => R.map(E.parse(s), node => replaceToken(s, node));
 
-	const replaceToken = (source: string, node: ExpressionNode) => {
+	const replaceToken = (source: string, node: AstNode) => {
 		const slice = ({ start, end }: { start: number, end: number; }) => source.slice(start, end);
-		const rec = (node: ExpressionNode): Node => {
+		const rec = (node: AstNode): Node => {
 			switch (node.type) {
 				case 'number': return num(slice(node.value));
 				case 'identifier': return id(slice(node.name));
@@ -225,9 +225,9 @@ describe("parse", () => {
 });
 
 describe("build", () => {
-	type ExpressionTypeKey = Fs.E.ExpressionTypeKey;
+	type Type = Fs.E.Type;
 
-	const evalAs = (type: ExpressionTypeKey) => (source: string, env: object) =>
+	const evalAs = (type: Type) => (source: string, env: object) =>
 		R.andThen(E.parse(source), node => E.build(type, source, node)(env));
 	const evalNumber = evalAs(E.NUMBER);
 	const evalBoolean = evalAs(E.BOOLEAN);
