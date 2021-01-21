@@ -331,11 +331,9 @@ describe("build", () => {
 	});
 
 	test("unary-operator", () => {
-		const bool = (b: boolean) => b ? 1 : 0;
-
 		expect(evalAny("+42", {})).toEqualOk(+42);
 		expect(evalAny("-42", {})).toEqualOk(-42);
-		expect(evalAny("bool(!foo)", { bool, foo: true })).toEqualOk(0);
+		expect(evalAny("!foo", { foo: true })).toEqualOk(false);
 
 		expect(evalAny("+foo", { foo: "foo" })).toMatchErr(typeError('number', "foo"));
 		expect(evalAny("-foo", { foo: "foo" })).toMatchErr(typeError('number', "foo"));
@@ -343,24 +341,22 @@ describe("build", () => {
 	});
 
 	test("binary-operator", () => {
-		const bool = (b: boolean) => b ? 1 : 0;
-
 		expect(evalAny("4 + 2", {})).toEqualOk(6);
 		expect(evalAny("4 - 2", {})).toEqualOk(2);
 		expect(evalAny("4 * 2", {})).toEqualOk(8);
 		expect(evalAny("4 / 2", {})).toEqualOk(2);
 		expect(evalAny("4 % 2", {})).toEqualOk(0);
 		expect(evalAny("4 ** 2", {})).toEqualOk(16);
-		expect(evalAny("bool(4 === 2)", { bool })).toEqualOk(0);
-		expect(evalAny("bool(4 !== 2)", { bool })).toEqualOk(1);
-		expect(evalAny("bool(4 <= 2)", { bool })).toEqualOk(0);
-		expect(evalAny("bool(4 >= 2)", { bool })).toEqualOk(1);
-		expect(evalAny("bool(4 < 2)", { bool })).toEqualOk(0);
-		expect(evalAny("bool(4 > 2)", { bool })).toEqualOk(1);
-		expect(evalAny("bool(foo && bar)", { bool, foo: true, bar: true })).toEqualOk(1);
-		expect(evalAny("bool(foo && bar)", { bool, foo: false, bar: "bar" })).toEqualOk(0);
-		expect(evalAny("bool(foo || bar)", { bool, foo: false, bar: false })).toEqualOk(0);
-		expect(evalAny("bool(foo || bar)", { bool, foo: true, bar: "bar" })).toEqualOk(1);
+		expect(evalAny("4 === 2", {})).toEqualOk(false);
+		expect(evalAny("4 !== 2", {})).toEqualOk(true);
+		expect(evalAny("4 <= 2", {})).toEqualOk(false);
+		expect(evalAny("4 >= 2", {})).toEqualOk(true);
+		expect(evalAny("4 < 2", {})).toEqualOk(false);
+		expect(evalAny("4 > 2", {})).toEqualOk(true);
+		expect(evalAny("foo && bar", { foo: true, bar: true })).toEqualOk(true);
+		expect(evalAny("foo && bar", { foo: false, bar: "bar" })).toEqualOk(false);
+		expect(evalAny("foo || bar", { foo: false, bar: false })).toEqualOk(false);
+		expect(evalAny("foo || bar", { foo: true, bar: "bar" })).toEqualOk(true);
 
 		expect(evalAny("foo + 0", { foo: "foo" })).toMatchErr(typeError('number', "foo"));
 		expect(evalAny("0 + foo", { foo: "foo" })).toMatchErr(typeError('number', "foo"));
@@ -374,22 +370,22 @@ describe("build", () => {
 		expect(evalAny("0 % foo", { foo: "foo" })).toMatchErr(typeError('number', "foo"));
 		expect(evalAny("foo ** 0", { foo: "foo" })).toMatchErr(typeError('number', "foo"));
 		expect(evalAny("0 ** foo", { foo: "foo" })).toMatchErr(typeError('number', "foo"));
-		expect(evalAny("bool(foo === 0)", { bool, foo: "foo" })).toMatchErr(typeError('number', "foo"));
-		expect(evalAny("bool(0 === foo)", { bool, foo: "foo" })).toMatchErr(typeError('number', "foo"));
-		expect(evalAny("bool(foo !== 0)", { bool, foo: "foo" })).toMatchErr(typeError('number', "foo"));
-		expect(evalAny("bool(0 !== foo)", { bool, foo: "foo" })).toMatchErr(typeError('number', "foo"));
-		expect(evalAny("bool(foo <= 0)", { bool, foo: "foo" })).toMatchErr(typeError('number', "foo"));
-		expect(evalAny("bool(0 <= foo)", { bool, foo: "foo" })).toMatchErr(typeError('number', "foo"));
-		expect(evalAny("bool(foo >= 0)", { bool, foo: "foo" })).toMatchErr(typeError('number', "foo"));
-		expect(evalAny("bool(0 >= foo)", { bool, foo: "foo" })).toMatchErr(typeError('number', "foo"));
-		expect(evalAny("bool(foo < 0)", { bool, foo: "foo" })).toMatchErr(typeError('number', "foo"));
-		expect(evalAny("bool(0 < foo)", { bool, foo: "foo" })).toMatchErr(typeError('number', "foo"));
-		expect(evalAny("bool(foo > 0)", { bool, foo: "foo" })).toMatchErr(typeError('number', "foo"));
-		expect(evalAny("bool(0 > foo)", { bool, foo: "foo" })).toMatchErr(typeError('number', "foo"));
-		expect(evalAny("bool(foo && bar)", { bool, foo: "foo", bar: true })).toMatchErr(typeError('boolean', "foo"));
-		expect(evalAny("bool(foo && bar)", { bool, foo: true, bar: "bar" })).toMatchErr(typeError('boolean', "bar"));
-		expect(evalAny("bool(foo || bar)", { bool, foo: "foo", bar: false })).toMatchErr(typeError('boolean', "foo"));
-		expect(evalAny("bool(foo || bar)", { bool, foo: false, bar: "bar" })).toMatchErr(typeError('boolean', "bar"));
+		expect(evalAny("foo === 0", { foo: "foo" })).toMatchErr(typeError('number', "foo"));
+		expect(evalAny("0 === foo", { foo: "foo" })).toMatchErr(typeError('number', "foo"));
+		expect(evalAny("foo !== 0", { foo: "foo" })).toMatchErr(typeError('number', "foo"));
+		expect(evalAny("0 !== foo", { foo: "foo" })).toMatchErr(typeError('number', "foo"));
+		expect(evalAny("foo <= 0", { foo: "foo" })).toMatchErr(typeError('number', "foo"));
+		expect(evalAny("0 <= foo", { foo: "foo" })).toMatchErr(typeError('number', "foo"));
+		expect(evalAny("foo >= 0", { foo: "foo" })).toMatchErr(typeError('number', "foo"));
+		expect(evalAny("0 >= foo", { foo: "foo" })).toMatchErr(typeError('number', "foo"));
+		expect(evalAny("foo < 0", { foo: "foo" })).toMatchErr(typeError('number', "foo"));
+		expect(evalAny("0 < foo", { foo: "foo" })).toMatchErr(typeError('number', "foo"));
+		expect(evalAny("foo > 0", { foo: "foo" })).toMatchErr(typeError('number', "foo"));
+		expect(evalAny("0 > foo", { foo: "foo" })).toMatchErr(typeError('number', "foo"));
+		expect(evalAny("foo && bar", { foo: "foo", bar: true })).toMatchErr(typeError('boolean', "foo"));
+		expect(evalAny("foo && bar", { foo: true, bar: "bar" })).toMatchErr(typeError('boolean', "bar"));
+		expect(evalAny("foo || bar", { foo: "foo", bar: false })).toMatchErr(typeError('boolean', "foo"));
+		expect(evalAny("foo || bar", { foo: false, bar: "bar" })).toMatchErr(typeError('boolean', "bar"));
 	});
 
 	test("conditional-operator", () => {
