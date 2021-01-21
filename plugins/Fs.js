@@ -873,6 +873,7 @@
 
 		const formatError = (source, expected) => ({ type: 'format', source, expected });
 		const jsonError = (source, inner) => ({ type: 'json', source, inner });
+		const expressionError = (source, cause) => ({ type: 'expression', source, cause });
 		const validationError = (source, cause) => ({ type: 'validation', source, cause });
 
 		const succeed = value => () => R.ok(value);
@@ -906,6 +907,12 @@
 		const entries = parsers => object => R.allL(parsers.map(parser => () => parser(object)));
 		const entry = (key, parser) => object => map(parser, value => [key, value])(object[key] ?? "");
 
+		const expression = (type, errorFormatter) => s => R.match(
+			E.compile(type, s),
+			evaluator => R.ok(env => E.run(evaluator, env, errorFormatter)),
+			cause => R.err(expressionError(s, cause)),
+		);
+
 		const make = archetype => {
 			if (typeof archetype === 'function') {
 				return archetype;
@@ -932,11 +939,12 @@
 			}));
 		};
 
-		const makeDefaultErrorFormatter = validationErrorFormatter => error => {
+		const makeDefaultErrorFormatter = (validationErrorFormatter) => error => {
 			const dots = s => S.ellipsis(s, 32);
 			switch (error?.type) {
 				case 'format': return `'${error.expected}' expected, but "${dots(error.source)}" found`;
 				case 'json': return `failed to parse JSON with following error message; "${error.inner.message}"`;
+				case 'expression': return `failed to parse expression; ${E.defaultCompileErrorFormatter(error.cause)}`;
 				case 'validation': return validationErrorFormatter(error.cause);
 				default: return `unknown error: ${S.debug(error)}`;
 			}
@@ -965,6 +973,7 @@
 			array,
 			struct,
 			entry,
+			expression,
 			make,
 			parse,
 			parseAll,

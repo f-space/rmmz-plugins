@@ -1,7 +1,7 @@
 import "./JestExt";
 import Fs from "./Fs";
 
-const { R, P } = Fs;
+const { R, E, P } = Fs;
 
 type Parser<T, E> = Fs.P.Parser<T, E>;
 
@@ -9,7 +9,10 @@ const parse = <T, E>(s: string, parser: Parser<T, E>) => parser(s);
 
 const formatError = <K extends string>(expected: K) => ({ type: 'format' as const, expected });
 const jsonError = () => ({ type: 'json' as const });
+const expressionError = <C>(cause: C) => ({ type: 'expression' as const, cause });
 const validationError = <V>(cause: V) => ({ type: 'validation' as const, cause });
+
+const eoiError = (position: number) => ({ type: 'eoi' as const, context: { position } });
 
 test("succeed", () => {
 	expect(parse("", P.succeed(42))).toEqualOk(42);
@@ -124,6 +127,16 @@ test("struct", () => {
 	expect(parse("", P.struct([P.entry("foo", P.integer)]))).toMatchErr(jsonError());
 });
 
+test("expression", () => {
+	expect(R.map(parse("1 + (2 - 3 * 4) / 5", P.expression(E.NUMBER)), expr => expr({}))).toEqualOk(-1);
+	expect(R.map(parse("1 < 2 ? 3 > 4 : 5 !== 6", P.expression(E.BOOLEAN)), expr => expr({}))).toEqualOk(false);
+	expect(R.map(parse("foo + bar", P.expression(E.NUMBER)), expr => expr({ foo: 12, bar: 30 }))).toEqualOk(42);
+	expect(R.map(parse("foo bar", P.expression(E.NUMBER)), expr => expr({}))).toMatchErr(expressionError(eoiError(4)));
+
+	const boolExpr = R.expect(parse("foo", P.expression(E.BOOLEAN)), () => "unexpected parse error");
+	expect(() => boolExpr({ foo: 42 })).toThrow();
+});
+
 test("make", () => {
 	const data = JSON.stringify({
 		foo: JSON.stringify([
@@ -173,6 +186,7 @@ test("error-message", () => {
 	expect(error("truee", P.boolean)).toEqualErr(`'boolean' expected, but "truee" found`);
 	expect(error("[1, 2,", P.array(P.integer)))
 		.toEqualErr(`failed to parse JSON with following error message; "${jsonErrorMessage("[1, 2,")}"`);
+	expect(error("()", P.expression(E.NUMBER))).toEqualErr(`failed to parse expression; 'expression' expected, but ")" found`);
 	expect(error("foo", P.validate(P.string, s => R.err(s)))).toEqualErr(`validation to "foo" failed`);
 	expect(error("foo", P.fail("bar"))).toEqualErr(`unknown error: "bar"`);
 });

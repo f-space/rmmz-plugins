@@ -435,12 +435,18 @@ declare namespace P {
 		source: string;
 		inner: Error;
 	};
+	export type ExpressionError = {
+		type: 'expression';
+		source: string;
+		cause: E.CompileError;
+	};
 	export type ValidationError<V> = {
 		type: 'validation';
 		source: string;
 		cause: V;
 	};
 
+	export type Expression<T> = (env: object) => T;
 	export type Archetype = Parser<any, any> | readonly [Archetype] | { [key: string]: Archetype; };
 	export type Validator<T, U, V> = (value: T) => R.Result<U, V>;
 	export type ErrorFormatter<E> = (error: E) => string;
@@ -477,6 +483,8 @@ declare namespace P {
 	const array: <T, E>(parser: Parser<T, E>) => Parser<T[], E | JsonError | FormatError<"array">>;
 	const struct: <P extends readonly EntryParser<any, any, any>[]>(parsers: readonly [...P]) => Struct<P>;
 	const entry: <K extends string, T, E>(key: K, parser: Parser<T, E>) => EntryParser<K, T, E>;
+	const expression: <K extends E.ExpressionTypeKey>(type: K, errorFormatter?: E.RuntimeErrorFormatter)
+		=> Parser<Expression<E.ExpressionTypeMap[K]>, ExpressionError>;
 	const make: <A extends Archetype>(archetype: A) => Make<A>;
 	const parse: <T, E>(s: string, parser: Parser<T, E>, errorFormatter?: ErrorFormatter<E>) => T;
 	const parseAll: <P extends { [key: string]: Parser<any, any>; }>(
@@ -506,6 +514,7 @@ declare namespace P {
 		array,
 		struct,
 		entry,
+		expression,
 		make,
 		parse,
 		parseAll,
