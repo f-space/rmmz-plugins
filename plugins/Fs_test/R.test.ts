@@ -46,6 +46,11 @@ test("attempt", () => {
 	expect(R.attempt(() => { throw 42; })).toEqual(R.err(42));
 });
 
+test("mapBoth", () => {
+	expect(R.mapBoth(R.ok(42), x => `ok(${x})`, e => `err(${e})`)).toEqual(R.ok("ok(42)"));
+	expect(R.mapBoth(R.err(-1), x => `ok(${x})`, e => `err(${e})`)).toEqual(R.err("err(-1)"));
+});
+
 test("map", () => {
 	expect(R.map(R.ok(42), String)).toEqual(R.ok("42"));
 	expect(R.map(R.err(-1), String)).toEqual(R.err(-1));

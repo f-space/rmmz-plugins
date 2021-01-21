@@ -140,10 +140,11 @@
 		const match = (result, onOk, onErr) => isOk(result) ? onOk(unwrap(result)) : onErr(unwrapErr(result));
 		const expect = (result, formatter) => isOk(result) ? unwrap(result) : throw_(formatter(unwrapErr(result)));
 		const attempt = fn => try_(() => ok(fn()), err);
+		const mapBoth = (result, mapOk, mapErr) => match(result, value => ok(mapOk(value)), error => err(mapErr(error)));
 		const { map: map, zip: all, zipL: allL } = Monad(ok, andThen);
 		const { map: mapErr, zip: any, zipL: anyL } = Monad(err, orElse);
 
-		return { ok, err, unwrap, unwrapErr, isOk, isErr, andThen, orElse, match, expect, attempt, map, mapErr, all, any, allL, anyL };
+		return { ok, err, unwrap, unwrapErr, isOk, isErr, andThen, orElse, match, expect, attempt, mapBoth, map, mapErr, all, any, allL, anyL };
 	})();
 
 	const L = (() => {

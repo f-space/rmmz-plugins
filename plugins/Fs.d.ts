@@ -80,6 +80,7 @@ declare namespace R {
 	const match: <T, E, P, Q>(result: Result<T, E>, onOk: (value: T) => P, onErr: (error: E) => Q) => P | Q;
 	const expect: <T, E>(result: Result<T, E>, formatter: (error: E) => string) => T;
 	const attempt: <T>(fn: () => T) => Result<T, unknown>;
+	const mapBoth: <T, U, E, F>(result: Result<T, E>, mapOk: (value: T) => U, mapErr: (error: E) => F) => Result<U, F>;
 	const map: <T, U, E>(result: Result<T, E>, fn: (value: T) => U) => Result<U, E>;
 	const mapErr: <T, E, F>(result: Result<T, E>, fn: (error: E) => F) => Result<T, F>;
 	const all: <A extends readonly Result<any, any>[]>(results: readonly [...A]) => All<A>;
@@ -87,7 +88,7 @@ declare namespace R {
 	const allL: <A extends readonly Lazy<Result<any, any>>[]>(results: readonly [...A]) => AllL<A>;
 	const anyL: <A extends readonly Lazy<Result<any, any>>[]>(results: readonly [...A]) => AnyL<A>;
 
-	export { ok, err, unwrap, unwrapErr, isOk, isErr, andThen, orElse, match, expect, attempt, map, mapErr, all, any, allL, anyL };
+	export { ok, err, unwrap, unwrapErr, isOk, isErr, andThen, orElse, match, expect, attempt, mapBoth, map, mapErr, all, any, allL, anyL };
 }
 
 declare namespace L {
