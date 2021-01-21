@@ -411,6 +411,9 @@ describe("build", () => {
 	});
 
 	test("builtin", () => {
+		expect(evalAny("Infinity", {})).toEqualOk(Number.POSITIVE_INFINITY);
+		expect(evalAny("-Infinity", {})).toEqualOk(Number.NEGATIVE_INFINITY);
+		expect(evalAny("NaN", {})).toEqualOk(Number.NaN);
 		expect(evalAny("Math.abs(-42)", {})).toEqualOk(42);
 		expect(evalAny("Math.max(42, 24)", { max: () => 0 })).toEqualOk(42);
 	});

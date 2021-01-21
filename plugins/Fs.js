@@ -624,7 +624,7 @@
 		})();
 
 		const build = (() => {
-			const BUILTIN_VARS = { Math };
+			const BUILTIN_VARS = { Infinity, NaN, Math };
 			const MEMBER_BLOCK_LIST = ["prototype", "constructor"];
 			const VALUE_BLOCK_LIST = new Map([
 				[globalThis, "global object"],
