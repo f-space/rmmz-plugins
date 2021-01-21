@@ -235,7 +235,7 @@ describe("build", () => {
 	type ExpressionTypeKey = Fs.E.ExpressionTypeKey;
 
 	const evalAs = (type: ExpressionTypeKey) => (source: string, env: object) =>
-		E.build(type, source, R.unwrap(E.parse(E.tokenize(source)) as any))(env);
+		R.andThen(E.parse(E.tokenize(source)), node => E.build(type, source, node)(env));
 	const evalNumber = evalAs(E.NUMBER);
 	const evalBoolean = evalAs(E.BOOLEAN);
 	const evalAny = evalAs(E.ANY);
@@ -381,13 +381,9 @@ describe("build", () => {
 });
 
 describe("other", () => {
-	const unwrap = <T>(result: Fs.R.Result<T, unknown>) => R.unwrap(result as Fs.R.Ok<T>);
-	const unwrapErr = <E>(result: Fs.R.Result<unknown, E>) => R.unwrapErr(result as Fs.R.Err<E>);
-
 	test("compile", () => {
-		expect(unwrap(E.compile(E.NUMBER, "foo"))({ foo: 42 })).toEqualOk(42);
-		expect(unwrapErr(E.compile(E.NUMBER, "")).source).toBe("");
-		expect(unwrapErr(E.compile(E.NUMBER, "")).error).toEqual(unwrapErr(E.parse([])));
+		expect(R.andThen(E.compile(E.NUMBER, "foo"), f => f({ foo: 42 }))).toEqualOk(42);
+		expect(E.compile(E.NUMBER, "")).toEqual(R.mapErr(E.parse([]), error => ({ source: "", error })));
 	});
 
 	test("expect", () => {
