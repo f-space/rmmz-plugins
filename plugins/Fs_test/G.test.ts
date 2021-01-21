@@ -5,7 +5,7 @@ const { O, R, U, G } = Fs;
 
 type PartialParser<S, T, E> = Fs.G.PartialParser<S, T, E>;
 
-const parse = <S, T, E>(source: S, parser: PartialParser<S, T, E>) => G.make(parser)(source);
+const parse = <S, T, E>(source: S, parser: PartialParser<S, T, E>) => G.mk(parser)(source);
 
 const tokenError = <C>(position: number, cause: C) => ({ type: 'token' as const, context: { position }, cause });
 const eoiError = (position: number) => ({ type: 'eoi' as const, context: { position } });
@@ -133,8 +133,10 @@ test("memo", () => {
 });
 
 test("parse", () => {
-	expect(G.parse("a", G.make(char("a")))).toEqual("a");
+	expect(G.parse("a", G.make(char("a")))).toEqual(["a", 1]);
+	expect(G.parse("a", G.mk(char("a")))).toEqual("a");
 	expect(() => G.parse("b", G.make(char("a")), e => e.type)).toThrow(new Error(tokenError(0, "a").type));
+	expect(() => G.parse("b", G.mk(char("a")), e => e.type)).toThrow(new Error(tokenError(0, "a").type));
 });
 
 test("error-message", () => {

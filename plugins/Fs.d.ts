@@ -146,7 +146,8 @@ declare namespace G {
 	};
 
 	export type PartialParser<S, T, E> = { [PARSER_SYMBOL]: [S, T, E]; };
-	export type Parser<S, T, E> = (source: S) => R.Result<T, E>;
+	export type Parser<S, T, E> = (source: S, position?: number) => R.Result<[T, number], E>;
+	export type SimpleParser<S, T, E> = (source: S) => R.Result<T, E>;
 
 	export type ParseOptions = {
 		noCache?: boolean;
@@ -228,7 +229,8 @@ declare namespace G {
 		=> PartialParser<S, U, E | ValidationError<S, V>>;
 	const memo: <S, T, E>(parser: PartialParser<S, T, E>) => PartialParser<S, T, E>;
 	const make: <S, T, E>(parser: PartialParser<S, T, E>, options?: ParseOptions) => Parser<S, T, E>;
-	const parse: <S extends Source, T, E>(source: S, parser: Parser<S, T, E>, errorFormatter?: ErrorFormatter<E>) => T;
+	const mk: <S, T, E>(parser: PartialParser<S, T, E>, options?: ParseOptions) => SimpleParser<S, T, E>;
+	const parse: <S extends Source, T, E>(source: S, parser: SimpleParser<S, T, E>, errorFormatter?: ErrorFormatter<E>) => T;
 	const makeDefaultErrorFormatter: <C, V>(
 		tokenErrorFormatter: ErrorFormatter<C>,
 		validationErrorFormatter: ErrorFormatter<V>,
@@ -256,6 +258,7 @@ declare namespace G {
 		validate,
 		memo,
 		make,
+		mk,
 		parse,
 		makeDefaultErrorFormatter,
 		defaultErrorFormatter,
@@ -510,7 +513,7 @@ declare namespace N {
 	type Source = string;
 
 	export type PartialParser<T, E> = G.PartialParser<Source, T, E>;
-	export type Parser<T, E> = G.Parser<Source, T, E>;
+	export type Parser<T, E> = G.SimpleParser<Source, T, E>;
 
 	export type TokenError<C> = G.TokenError<Source, C>;
 	export type EoiError = G.EoiError<Source>;

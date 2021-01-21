@@ -371,12 +371,16 @@
 			}
 		};
 
-		const make = (parser, options = {}) => source => {
-			const position = 0;
+		const makeContext = (source, position, options = {}) => {
 			const cache = options.noCache ? null : [...new Array(source.length).fill(L.nil())];
-			const context = { source, position, cache };
-			return R.map(parser(context), ([value]) => value);
+			return { source, position, cache };
 		};
+
+		const make = (parser, options) => (source, position = 0) =>
+			R.map(parser(makeContext(source, position, options)), ([value, { position }]) => [value, position]);
+
+		const mk = (parser, options) => source =>
+			R.map(parser(makeContext(source, 0, options)), ([value]) => value);
 
 		const parse = (source, parser, errorFormatter = defaultErrorFormatter) => R.expect(parser(source), errorFormatter);
 
@@ -427,6 +431,7 @@
 			validate,
 			memo,
 			make,
+			mk,
 			parse,
 			makeDefaultErrorFormatter,
 			defaultErrorFormatter,
@@ -464,7 +469,7 @@
 				word('unknown', RE_UNKNOWN),
 			]);
 			const tokenList = G.many(G.andThen(spacing, () => token));
-			const lexer = G.make(tokenList, { noCache: true });
+			const lexer = G.mk(tokenList, { noCache: true });
 
 			return source => R.unwrap(lexer(source));
 		})();
@@ -590,7 +595,7 @@
 
 			const endWith = parser => G.andThen(parser, value => G.map(G.eoi(), () => value));
 
-			return G.make(endWith(expression));
+			return G.mk(endWith(expression));
 		})();
 
 		const build = (() => {
@@ -964,7 +969,7 @@
 		const symbolError = (source, position, symbol) => ({ type: 'symbol', source, position, symbol });
 		const regexpError = (source, position, name, regexp) => ({ type: 'regexp', source, position, name, regexp });
 
-		const { succeed, fail, make } = G;
+		const { succeed, fail } = G;
 		const map = (parser, fn) => G.memo(G.map(parser, fn));
 		const mapError = (parser, fn) => G.memo(G.mapError(parser, fn));
 		const seqOf = parsers => G.memo(G.seqOf(parsers));
@@ -1014,6 +1019,7 @@
 		const list = parser => chain(parser, spaces);
 		const tuple = parsers => join(parsers, spaces);
 
+		const make = parser => G.mk(parser);
 		const parse = (source, parser, errorFormatter = defaultErrorFormatter) => G.parse(source, parser, errorFormatter);
 
 		const defaultTokenErrorFormatter = error => {
