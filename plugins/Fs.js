@@ -109,7 +109,7 @@
 		return { map, zip, zipL };
 	};
 
-	const throw_ = message => { throw new Error(message); };
+	const panic = message => { throw new Error(message); };
 	const try_ = (fn, handler) => { try { return fn(); } catch (e) { return handler(e); } };
 
 	const O = (() => {
@@ -121,7 +121,7 @@
 		const andThen = (option, fn) => isSome(option) ? fn(unwrap(option)) : option;
 		const orElse = (option, fn) => isSome(option) ? option : fn();
 		const match = (option, onSome, onNone) => isSome(option) ? onSome(unwrap(option)) : onNone();
-		const expect = (option, formatter) => isSome(option) ? unwrap(option) : throw_(formatter());
+		const expect = (option, formatter) => isSome(option) ? unwrap(option) : panic(formatter());
 		const withDefault = (option, value) => isSome(option) ? unwrap(option) : value;
 		const { map, zip, zipL } = Monad(some, andThen);
 
@@ -138,7 +138,7 @@
 		const andThen = (result, fn) => isOk(result) ? fn(unwrap(result)) : result;
 		const orElse = (result, fn) => isOk(result) ? result : fn(unwrapErr(result));
 		const match = (result, onOk, onErr) => isOk(result) ? onOk(unwrap(result)) : onErr(unwrapErr(result));
-		const expect = (result, formatter) => isOk(result) ? unwrap(result) : throw_(formatter(unwrapErr(result)));
+		const expect = (result, formatter) => isOk(result) ? unwrap(result) : panic(formatter(unwrapErr(result)));
 		const attempt = fn => try_(() => ok(fn()), err);
 		const mapBoth = (result, mapOk, mapErr) => match(result, value => ok(mapOk(value)), error => err(mapErr(error)));
 		const { map: map, zip: all, zipL: allL } = Monad(ok, andThen);
@@ -670,7 +670,7 @@
 					case NUMBER: return isNumber;
 					case BOOLEAN: return isBoolean;
 					case ANY: return x => x;
-					default: throw new Error(`unsupported expression type: ${type}`);
+					default: return panic(`unsupported expression type: ${type}`);
 				}
 			};
 
@@ -685,7 +685,7 @@
 					case 'unary-operator': return unaryOp(source, node);
 					case 'binary-operator': return binaryOp(source, node);
 					case 'conditional-operator': return condOp(source, node);
-					default: throw new Error(`invalid AST node type: ${type}`);
+					default: return panic(`invalid AST node type: ${type}`);
 				}
 			};
 
@@ -768,7 +768,7 @@
 					case '+': return env => unary(a => +a)(() => isNumber(evalExpr(env)));
 					case '-': return env => unary(a => -a)(() => isNumber(evalExpr(env)));
 					case '!': return env => unary(a => !a)(() => isBoolean(evalExpr(env)));
-					default: throw new Error(`unsupported unary operator: ${operator}`);
+					default: return panic(`unsupported unary operator: ${operator}`);
 				}
 			};
 
@@ -791,7 +791,7 @@
 					case '>': return env => binary((a, b) => a > b)(() => isNumber(evalL(env)), () => isNumber(evalR(env)));
 					case '&&': return env => R.andThen(isBoolean(evalL(env)), value => value ? isBoolean(evalR(env)) : R.ok(false));
 					case '||': return env => R.andThen(isBoolean(evalL(env)), value => value ? R.ok(true) : isBoolean(evalR(env)));
-					default: throw new Error(`unsupported binary operator: ${operator}`);
+					default: return panic(`unsupported binary operator: ${operator}`);
 				}
 			};
 
@@ -922,13 +922,13 @@
 					if (archetype.length === 1) {
 						return array(make(archetype[0]));
 					} else {
-						throw new Error(`archetype array must be a singleton: ${S.debug(archetype)}`);
+						return panic(`archetype array must be a singleton: ${S.debug(archetype)}`);
 					}
 				} else {
 					return struct(Object.entries(archetype).map(([key, value]) => entry(key, make(value))));
 				}
 			} else {
-				throw new Error(`invalid archetype item: ${S.debug(archetype)}`);
+				return panic(`invalid archetype item: ${S.debug(archetype)}`);
 			}
 		};
 
