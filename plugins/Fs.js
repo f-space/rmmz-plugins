@@ -943,7 +943,7 @@
 			const dots = s => S.ellipsis(s, 32);
 			switch (error?.type) {
 				case 'format': return `'${error.expected}' expected, but "${dots(error.source)}" found`;
-				case 'json': return `failed to parse JSON with following error message; "${error.inner.message}"`;
+				case 'json': return `failed to parse JSON; ${error.inner.message}`;
 				case 'expression': return `failed to parse expression; ${E.defaultCompileErrorFormatter(error.cause)}`;
 				case 'validation': return validationErrorFormatter(error.cause);
 				default: return `unknown error: ${S.debug(error)}`;
