@@ -6,20 +6,20 @@ const { R, G, E } = Fs;
 describe("token", () => {
 	type Symbol = Fs.E.Symbol;
 	type Token<T> = Fs.E.Token<T>;
-	type TokenType = Fs.E.TokenType | 'spacing';
+	type LexTokenType = Fs.E.LexTokenType;
 
-	const spacing = (source: string) => G.mk(E.Lexer.spacing)(source);
+	const whitespace = (source: string) => G.mk(E.Lexer.whitespace)(source);
 	const symbol = <S extends Symbol>(symbol: S) => G.mk(E.Lexer[symbol] as Fs.G.PartialParser<string, Token<S>, S>)(symbol);
 	const number = (source: string) => G.mk(E.Lexer.number)(source);
 	const identifier = (source: string) => G.mk(E.Lexer.identifier)(source);
 	const unknown = (source: string) => G.mk(E.Lexer.unknown)(source);
 
-	const token = <T extends TokenType>(type: T, start: number, end: number) => ({ type, start, end });
+	const token = <T extends LexTokenType>(type: T, start: number, end: number) => ({ type, start, end });
 
-	test("spacing", () => {
-		expect(spacing("")).toEqualOk(token('spacing', 0, 0));
-		expect(spacing("    ")).toEqualOk(token('spacing', 0, 4));
-		expect(spacing("\r\n")).toEqualOk(token('spacing', 0, 2));
+	test("whitespace", () => {
+		expect(whitespace("")).toEqualOk(token('whitespace', 0, 0));
+		expect(whitespace("    ")).toEqualOk(token('whitespace', 0, 4));
+		expect(whitespace("\r\n")).toEqualOk(token('whitespace', 0, 2));
 	});
 
 	test("symbol", () => {

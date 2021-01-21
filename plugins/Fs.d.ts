@@ -286,10 +286,12 @@ declare namespace E {
 	export type OtherSymbol = '(' | ')' | '[' | ']' | ',' | '.' | '?' | ':';
 	export type Unknown = 'unknown';
 	export type PseudoToken = 'expression';
+	export type Whitespace = 'whitespace';
 
 	export type Symbol = UnaryOperator | BinaryOperator | OtherSymbol;
 	export type TokenType = Term | Symbol | Unknown;
 	export type ExtTokenType = TokenType | PseudoToken;
+	export type LexTokenType = TokenType | Whitespace;
 	export type Token<T> = {
 		type: T;
 		start: number;
@@ -390,7 +392,7 @@ declare namespace E {
 	export type CompileErrorFormatter = (error: CompileError) => string;
 	export type RuntimeErrorFormatter = (error: RuntimeError) => string;
 
-	const Lexer: { [P in TokenType | 'spacing']: Tokenizer<P> };
+	const Lexer: { [T in LexTokenType]: Tokenizer<T> };
 	const parser: Parser;
 	const parse: (source: string) => R.Result<AstNode, ParseError>;
 	const build: <T extends Type>(type: T, source: string, node: AstNode) => Evaluator<T>;

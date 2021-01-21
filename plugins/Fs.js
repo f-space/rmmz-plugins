@@ -445,7 +445,7 @@
 		const ANY = 'any';
 
 		const Lexer = (() => {
-			const RE_SPACING = /^[ \r\n]*/;
+			const RE_WHITESPACE = /^[ \r\n]*/;
 			const RE_IDENTIFIER = /^[a-z$][a-z0-9$_]*/i;
 			const RE_NUMBER = /^(?:\d+(?:\.\d*)?|\.\d+)(?:e[+\-]?\d+)?/i;
 			const RE_UNKNOWN = /^(?:[a-z0-9$_]+|[\p{L}\p{N}\p{Pc}\p{M}\p{Cf}]+|[\p{P}\p{S}]+|[^ \r\n]+)/iu;
@@ -489,7 +489,7 @@
 				"[": symbol("["),
 				"]": symbol("]"),
 				"||": symbol("||"),
-				"spacing": regexp("spacing", RE_SPACING),
+				"whitespace": regexp("whitespace", RE_WHITESPACE),
 				"identifier": regexp("identifier", RE_IDENTIFIER),
 				"number": regexp("number", RE_NUMBER),
 				"unknown": regexp("unknown", RE_UNKNOWN),
@@ -506,7 +506,7 @@
 			const binaryOpNode = (operator, lhs, rhs) => ({ type: 'binary-operator', operator, lhs, rhs });
 			const condOpNode = (if_, then, else_) => ({ type: 'conditional-operator', if: if_, then, else: else_ });
 
-			const token = type => (parser => G.andThen(Lexer.spacing, () => parser))(Lexer[type]);
+			const token = type => (parser => G.andThen(Lexer.whitespace, () => parser))(Lexer[type]);
 			const fail = type => G.token(() => R.err(type));
 
 			const number = G.map(token("number"), value => numberNode(value));
@@ -611,7 +611,7 @@
 		})();
 
 		const parse = (() => {
-			const tail = G.andThen(Lexer.spacing, () => G.eoi());
+			const tail = G.andThen(Lexer.whitespace, () => G.eoi());
 			const whole = G.andThen(parser, value => G.map(tail, () => value));
 			return G.mk(whole);
 		})();
@@ -818,7 +818,7 @@
 			run(expect(compile(type, source), parseErrorFormatter), env, runtimeErrorFormatter);
 
 		const defaultCompileErrorFormatter = error => {
-			const tokenize = G.make(G.andThen(Lexer.spacing, () => Lexer.unknown));
+			const tokenize = G.make(G.andThen(Lexer.whitespace, () => Lexer.unknown));
 			const sample = (source, position) => R.match(tokenize(source, position), ([token]) => token, () => undefined);
 			const restore = (source, token) => source.slice(token.start, token.end);
 			const formatTokenError = error => {
