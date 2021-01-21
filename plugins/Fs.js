@@ -624,6 +624,7 @@
 		})();
 
 		const build = (() => {
+			const BUILTIN_VARS = { Math };
 			const MEMBER_BLOCK_LIST = ["prototype", "constructor"];
 			const VALUE_BLOCK_LIST = new Map([
 				[globalThis, "global object"],
@@ -639,7 +640,7 @@
 			const typeError = (expected, actual) => ({ type: 'type', expected, actual });
 			const securityError = target => ({ type: 'security', target });
 
-			const builtinValue = name => Math.hasOwnProperty(name) ? O.some(Math[name]) : O.none();
+			const builtinValue = name => BUILTIN_VARS.hasOwnProperty(name) ? O.some(BUILTIN_VARS[name]) : O.none();
 			const blockedMember = name => MEMBER_BLOCK_LIST.includes(name) ? O.some(`${name} property`) : O.none();
 			const blockedValue = value => VALUE_BLOCK_LIST.has(value) ? O.some(VALUE_BLOCK_LIST.get(value)) : O.none();
 

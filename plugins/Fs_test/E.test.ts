@@ -411,8 +411,8 @@ describe("build", () => {
 	});
 
 	test("builtin", () => {
-		expect(evalAny("abs(-42)", {})).toEqualOk(42);
-		expect(evalAny("max(42, 24)", { max: () => 0 })).toEqualOk(42);
+		expect(evalAny("Math.abs(-42)", {})).toEqualOk(42);
+		expect(evalAny("Math.max(42, 24)", { max: () => 0 })).toEqualOk(42);
 	});
 
 	test("type", () => {
