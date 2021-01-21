@@ -547,7 +547,14 @@ declare namespace N {
 		name: string;
 		regexp: RegExp;
 	};
+	export type ExpressionError = {
+		type: 'expression';
+		source: Source;
+		start: number;
+		cause: E.Parser extends PartialParser<any, infer E> ? E : never;
+	};
 
+	export type Expression<T> = (env: object) => T;
 	export type Validator<T, U, V> = G.Validator<T, U, V>;
 	export type ErrorFormatter<E> = G.ErrorFormatter<E>;
 
@@ -566,6 +573,8 @@ declare namespace N {
 	const symbol: <S extends string>(s: S) => PartialParser<S, TokenError<SymbolError>>;
 	const regexp: <T = string>(name: string, re: RegExp, fn?: (...captures: string[]) => T)
 		=> PartialParser<T, TokenError<RegexpError>>;
+	const expression: <K extends E.ExpressionTypeKey>(type: K, errorFormatter?: E.RuntimeErrorFormatter)
+		=> PartialParser<Expression<E.ExpressionTypeMap[K]>, TokenError<ExpressionError>>;
 	const spacing: PartialParser<string, never>;
 	const spaces: PartialParser<string, TokenError<RegexpError>>;
 	const natural: PartialParser<number, TokenError<RegexpError>>;
@@ -603,6 +612,7 @@ declare namespace N {
 		validate,
 		symbol,
 		regexp,
+		expression,
 		spacing,
 		spaces,
 		natural,

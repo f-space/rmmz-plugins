@@ -1,15 +1,18 @@
 import "./JestExt";
 import Fs from "./Fs";
 
-const { R, N } = Fs;
+const { R, E, N } = Fs;
 
 type PartialParser<T, E> = Fs.N.PartialParser<T, E>;
 
 const parse = <T, E>(source: string, parser: PartialParser<T, E>) => N.make(parser)(source);
 
-const symbolError = (position: number, symbol: string) => ({ type: 'token' as const, context: { position }, cause: { symbol } });
-const regexpError = (position: number, name: string) => ({ type: 'token' as const, context: { position }, cause: { name } });
+const tokenError = <C>(position: number, cause: C) => ({ type: 'token' as const, context: { position }, cause });
 const eoiError = (position: number) => ({ type: 'eoi' as const, context: { position } });
+
+const symbolError = (position: number, symbol: string) => tokenError(position, { type: 'symbol' as const, symbol });
+const regexpError = (position: number, name: string) => tokenError(position, { type: 'regexp' as const, name });
+const expressionError = <C>(position: number, cause: C) => tokenError(position, { type: 'expression' as const, cause });
 
 test("symbol", () => {
 	expect(parse("foo", N.symbol("foo"))).toEqualOk("foo");
@@ -22,6 +25,21 @@ test("regexp", () => {
 	});
 	expect(parse("24..42", parser)).toEqualOk([24, 42]);
 	expect(parse("", parser)).toMatchErr(regexpError(0, "range"));
+});
+
+test("expression", () => {
+	expect(R.map(parse("1 + (2 - 3 * 4) / 5", N.expression(E.NUMBER)), expr => expr({}))).toEqualOk(-1);
+	expect(R.map(parse("1 < 2 ? 3 > 4 : 5 !== 6", N.expression(E.BOOLEAN)), expr => expr({}))).toEqualOk(false);
+	expect(R.map(parse("foo + bar", N.expression(E.NUMBER)), expr => expr({ foo: 12, bar: 30 }))).toEqualOk(42);
+	expect(R.map(parse("!", N.expression(E.NUMBER)), expr => expr({})))
+		.toMatchErr(expressionError(0, tokenError(1, 'expression')));
+	expect(R.map(
+		parse("$1 < 2$", N.seqOf([N.symbol("$"), N.expression(E.BOOLEAN), N.symbol("$")])),
+		([a, expr, b]) => `${a}${expr({})}${b}`
+	)).toEqualOk("$true$");
+
+	const boolExpr = R.expect(parse("foo", N.expression(E.BOOLEAN)), () => "unexpected parse error");
+	expect(() => boolExpr({ foo: 42 })).toThrow();
 });
 
 test("spacing", () => {
@@ -149,6 +167,8 @@ test("error-message", () => {
 		R.mapErr(N.make(parser)(source), N.defaultErrorFormatter);
 
 	expect(error("foo", N.symbol("bar"))).toEqualErr(`'bar' expected, but "foo" found`);
-	expect(error("foo", N.boolean)).toEqualErr(`'boolean' expected, but "foo" found`);
 	expect(error("", N.symbol("bar"))).toEqualErr(`'bar' expected, but no more characters found`);
+	expect(error("foo", N.boolean)).toEqualErr(`'boolean' expected, but "foo" found`);
+	expect(error("🐛", N.expression(E.NUMBER))).toEqualErr(`'expression' expected, but "🐛" found`);
+	expect(error("foo.", N.expression(E.NUMBER))).toEqualErr(`'identifier' expected, but no more tokens found`);
 });

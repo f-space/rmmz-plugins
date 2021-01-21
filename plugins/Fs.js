@@ -994,6 +994,7 @@
 
 		const symbolError = (source, position, symbol) => ({ type: 'symbol', source, position, symbol });
 		const regexpError = (source, position, name, regexp) => ({ type: 'regexp', source, position, name, regexp });
+		const expressionError = (source, position, cause) => ({ type: 'expression', source, position, cause });
 
 		const { succeed, fail } = G;
 		const map = (parser, fn) => G.memo(G.map(parser, fn));
@@ -1019,6 +1020,20 @@
 				return R.err(regexpError(source, position, name, re));
 			}
 		}));
+
+		const expression = (type, errorFormatter) => {
+			const pipe = (a, fn) => fn(a);
+			const parse = G.make(E.parser);
+			const build = (source, node) => E.build(type, source, node);
+			const make = evaluator => env => E.run(evaluator, env, errorFormatter);
+			return G.memo(G.token((source, position) =>
+				R.mapBoth(
+					parse(source, position),
+					([node, next]) => [pipe(build(source, node), make), next],
+					cause => expressionError(source, position, cause),
+				)
+			));
+		};
 
 		const spacing = regexp("spacing", RE_SPACING);
 		const spaces = regexp("spaces", RE_SPACES);
@@ -1054,6 +1069,7 @@
 			switch (error?.type) {
 				case 'symbol': return `'${error.symbol}' expected, but ${rest(error)} found`;
 				case 'regexp': return `'${error.name}' expected, but ${rest(error)} found`;
+				case 'expression': return E.defaultCompileErrorFormatter(error.cause);
 				default: return `unknown error: ${S.debug(error)}`;
 			}
 		};
@@ -1075,6 +1091,7 @@
 			validate,
 			symbol,
 			regexp,
+			expression,
 			spacing,
 			spaces,
 			natural,
