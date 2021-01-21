@@ -50,22 +50,56 @@ describe("token", () => {
 	});
 
 	test("number", () => {
+		expect(number("0")).toEqualOk(token('number', "0", 0));
+		expect(number("1")).toEqualOk(token('number', "1", 0));
 		expect(number("42")).toEqualOk(token('number', "42", 0));
+		expect(number("4_2_42")).toEqualOk(token('number', "4_2_42", 0));
 		expect(number("4.2")).toEqualOk(token('number', "4.2", 0));
 		expect(number("0.42")).toEqualOk(token('number', "0.42", 0));
-		expect(number("00.42")).toEqualOk(token('number', "00.42", 0));
+		expect(number("0.4_2_42")).toEqualOk(token('number', "0.4_2_42", 0));
+		expect(number("0.420")).toEqualOk(token('number', "0.420", 0));
 		expect(number(".42")).toEqualOk(token('number', ".42", 0));
 		expect(number("42e42")).toEqualOk(token('number', "42e42", 0));
-		expect(number("42e+42")).toEqualOk(token('number', "42e+42", 0));
-		expect(number("42e-42")).toEqualOk(token('number', "42e-42", 0));
-		expect(number("42E42")).toEqualOk(token('number', "42E42", 0));
-		expect(number("42E+42")).toEqualOk(token('number', "42E+42", 0));
-		expect(number("42E-42")).toEqualOk(token('number', "42E-42", 0));
-		expect(number("0123456789.9876543210")).toEqualOk(token('number', "0123456789.9876543210", 0));
+		expect(number("42.e42")).toEqualOk(token('number', "42.e42", 0));
+		expect(number("4.2E+42")).toEqualOk(token('number', "4.2E+42", 0));
+		expect(number(".42E-42")).toEqualOk(token('number', ".42E-42", 0));
+		expect(number("42e4_2_42")).toEqualOk(token('number', "42e4_2_42", 0));
+		expect(number("0b0")).toEqualOk(token('number', "0b0", 0));
+		expect(number("0B1")).toEqualOk(token('number', "0B1", 0));
+		expect(number("0b00101010")).toEqualOk(token('number', "0b00101010", 0));
+		expect(number("0b00_10_10_10")).toEqualOk(token('number', "0b00_10_10_10", 0));
+		expect(number("0o0")).toEqualOk(token('number', "0o0", 0));
+		expect(number("0O7")).toEqualOk(token('number', "0O7", 0));
+		expect(number("0o52")).toEqualOk(token('number', "0o52", 0));
+		expect(number("0o0_0_5_2")).toEqualOk(token('number', "0o0_0_5_2", 0));
+		expect(number("0x0")).toEqualOk(token('number', "0x0", 0));
+		expect(number("0XF")).toEqualOk(token('number', "0XF", 0));
+		expect(number("0x2a")).toEqualOk(token('number', "0x2a", 0));
+		expect(number("0x0_0_2_a")).toEqualOk(token('number', "0x0_0_2_a", 0));
 
+		expect(number("042")).not.toEqualOk(token('number', "042", 0));
 		expect(number("+42")).not.toEqualOk(token('number', "+42", 0));
 		expect(number("-42")).not.toEqualOk(token('number', "-42", 0));
+		expect(number("_42")).not.toEqualOk(token('number', "_42", 0));
+		expect(number("42_")).not.toEqualOk(token('number', "42_", 0));
+		expect(number("4_.2")).not.toEqualOk(token('number', "4_.2", 0));
+		expect(number("4._2")).not.toEqualOk(token('number', "4._2", 0));
+		expect(number("42e")).not.toEqualOk(token('number', "42e", 0));
+		expect(number("42e-")).not.toEqualOk(token('number', "42e-", 0));
+		expect(number("e42")).not.toEqualOk(token('number', "e42", 0));
 		expect(number(".e42")).not.toEqualOk(token('number', ".e42", 0));
+		expect(number("42_e42")).not.toEqualOk(token('number', "42_e42", 0));
+		expect(number("42e_42")).not.toEqualOk(token('number', "42e_42", 0));
+		expect(number("42e+_42")).not.toEqualOk(token('number', "42e+_42", 0));
+		expect(number("0b")).not.toEqualOk(token('number', "0b", 0));
+		expect(number("0b2")).not.toEqualOk(token('number', "0b2", 0));
+		expect(number("0b_0")).not.toEqualOk(token('number', "0b_0", 0));
+		expect(number("0o")).not.toEqualOk(token('number', "0o", 0));
+		expect(number("0o8")).not.toEqualOk(token('number', "0o8", 0));
+		expect(number("0o_0")).not.toEqualOk(token('number', "0o_0", 0));
+		expect(number("0x")).not.toEqualOk(token('number', "0x", 0));
+		expect(number("0xG")).not.toEqualOk(token('number', "0xG", 0));
+		expect(number("0x_0")).not.toEqualOk(token('number', "0x_0", 0));
 	});
 
 	test("identifier", () => {
@@ -240,17 +274,32 @@ describe("build", () => {
 	const securityError = (target: string) => ({ type: 'security' as const, target });
 
 	test("number", () => {
+		expect(evalAny("0", {})).toEqualOk(0);
+		expect(evalAny("1", {})).toEqualOk(1);
 		expect(evalAny("42", {})).toEqualOk(42);
+		expect(evalAny("4_2_42", {})).toEqualOk(4_2_42);
 		expect(evalAny("4.2", {})).toEqualOk(4.2);
 		expect(evalAny("0.42", {})).toEqualOk(0.42);
-		expect(evalAny("00.42", {})).toEqualOk(0.42);
+		expect(evalAny("0.4_2_42", {})).toEqualOk(0.4_2_42);
+		expect(evalAny("0.420", {})).toEqualOk(0.420);
 		expect(evalAny(".42", {})).toEqualOk(.42);
 		expect(evalAny("42e42", {})).toEqualOk(42e42);
-		expect(evalAny("42e+42", {})).toEqualOk(42e+42);
-		expect(evalAny("42e-42", {})).toEqualOk(42e-42);
-		expect(evalAny("42E42", {})).toEqualOk(42E42);
-		expect(evalAny("42E+42", {})).toEqualOk(42E+42);
-		expect(evalAny("42E-42", {})).toEqualOk(42E-42);
+		expect(evalAny("42.e42", {})).toEqualOk(42.e42);
+		expect(evalAny("4.2E+42", {})).toEqualOk(4.2E+42);
+		expect(evalAny(".42E-42", {})).toEqualOk(.42E-42);
+		expect(evalAny("42e4_2_42", {})).toEqualOk(42e4_2_42);
+		expect(evalAny("0b0", {})).toEqualOk(0b0);
+		expect(evalAny("0B1", {})).toEqualOk(0B1);
+		expect(evalAny("0b00101010", {})).toEqualOk(0b00101010);
+		expect(evalAny("0b00_10_10_10", {})).toEqualOk(0b00_10_10_10);
+		expect(evalAny("0o0", {})).toEqualOk(0o0);
+		expect(evalAny("0O7", {})).toEqualOk(0O7);
+		expect(evalAny("0o52", {})).toEqualOk(0o52);
+		expect(evalAny("0o0_0_5_2", {})).toEqualOk(0o0_0_5_2);
+		expect(evalAny("0x0", {})).toEqualOk(0x0);
+		expect(evalAny("0XF", {})).toEqualOk(0XF);
+		expect(evalAny("0x2a", {})).toEqualOk(0x2a);
+		expect(evalAny("0x0_0_2_a", {})).toEqualOk(0x0_0_2_a);
 	});
 
 	test("identifier", () => {

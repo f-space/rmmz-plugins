@@ -447,7 +447,18 @@
 		const Lexer = (() => {
 			const RE_WHITESPACE = /^[ \r\n]*/;
 			const RE_IDENTIFIER = /^[a-z$][a-z0-9$_]*/i;
-			const RE_NUMBER = /^(?:\d+(?:\.\d*)?|\.\d+)(?:e[+\-]?\d+)?/i;
+			const RE_DECIMAL_DIGITS = `(?:[0-9]+(?:_[0-9]+)*)`;
+			const RE_DECIMAL_INTEGER_LITERAL = `(?:0(?![bBoOxX])|[1-9](?:_?${RE_DECIMAL_DIGITS})?)`;
+			const RE_EXPORNENT_PART = `(?:[eE][+-]?${RE_DECIMAL_DIGITS})`;
+			const RE_DECIMAL_LITERAL =
+				`(?:(?:${RE_DECIMAL_INTEGER_LITERAL}(?:\\.${RE_DECIMAL_DIGITS}?)?|\\.${RE_DECIMAL_DIGITS})${RE_EXPORNENT_PART}?)`;
+			const RE_BINARY_INTEGER_LITERAL = `(?:0[bB][0-1]+(?:_[0-1]+)*)`;
+			const RE_OCTAL_INTEGER_LITERAL = `(?:0[oO][0-7]+(?:_[0-7]+)*)`;
+			const RE_HEX_INTEGER_LITERAL = `(?:0[xX][0-9a-fA-F]+(?:_[0-9a-fA-F]+)*)`;
+			const RE_NON_DECIMAL_INTEGER_LITERAL =
+				`(?:${RE_BINARY_INTEGER_LITERAL}|${RE_OCTAL_INTEGER_LITERAL}|${RE_HEX_INTEGER_LITERAL})`;
+			const RE_NUMERIC_LITERAL = `(?:${RE_DECIMAL_LITERAL}|${RE_NON_DECIMAL_INTEGER_LITERAL})`;
+			const RE_NUMBER = new RegExp(`^${RE_NUMERIC_LITERAL}`);
 			const RE_UNKNOWN = /^(?:[a-z0-9$_]+|[\p{L}\p{N}\p{Pc}\p{M}\p{Cf}]+|[\p{P}\p{S}]+|[^ \r\n]+)/iu;
 
 			const next = (type, text, position) => [{ type, text, position }, position + text.length];
@@ -685,7 +696,7 @@
 			};
 
 			const number = node => {
-				const value = Number.parseFloat(node.value.text);
+				const value = Number(node.value.text.replace(/_/g, ""));
 				return () => R.ok(value);
 			};
 
