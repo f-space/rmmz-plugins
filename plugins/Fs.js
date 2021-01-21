@@ -445,7 +445,7 @@
 		const ANY = 'any';
 
 		const Lexer = (() => {
-			const RE_WHITESPACE = /^[ \r\n]*/;
+			const RE_WHITESPACE = /^[ \t\r\n]*/;
 			const RE_IDENTIFIER = /^[a-z$][a-z0-9$_]*/i;
 			const RE_DECIMAL_DIGITS = `(?:[0-9]+(?:_[0-9]+)*)`;
 			const RE_DECIMAL_INTEGER_LITERAL = `(?:0(?![bBoOxX])|[1-9](?:_?${RE_DECIMAL_DIGITS})?)`;
@@ -459,7 +459,7 @@
 				`(?:${RE_BINARY_INTEGER_LITERAL}|${RE_OCTAL_INTEGER_LITERAL}|${RE_HEX_INTEGER_LITERAL})`;
 			const RE_NUMERIC_LITERAL = `(?:${RE_DECIMAL_LITERAL}|${RE_NON_DECIMAL_INTEGER_LITERAL})`;
 			const RE_NUMBER = new RegExp(`^${RE_NUMERIC_LITERAL}`);
-			const RE_UNKNOWN = /^(?:[a-z0-9$_]+|[\p{L}\p{N}\p{Pc}\p{M}\p{Cf}]+|[\p{P}\p{S}]+|[^ \r\n]+)/iu;
+			const RE_UNKNOWN = /^(?:[a-z0-9$_]+|[\p{L}\p{N}\p{Pc}\p{M}\p{Cf}]+|[\p{P}\p{S}]+|[^ \t\r\n]+)/iu;
 
 			const next = (type, text, position) => [{ type, text, position }, position + text.length];
 

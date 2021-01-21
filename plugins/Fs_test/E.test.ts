@@ -20,7 +20,7 @@ describe("token", () => {
 	test("whitespace", () => {
 		expect(whitespace("")).toEqualOk(token('whitespace', "", 0));
 		expect(whitespace("    ")).toEqualOk(token('whitespace', "    ", 0));
-		expect(whitespace("\r\n")).toEqualOk(token('whitespace', "\r\n", 0));
+		expect(whitespace("\t\r\n")).toEqualOk(token('whitespace', "\t\r\n", 0));
 	});
 
 	test("symbol", () => {
