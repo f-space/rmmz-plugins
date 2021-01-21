@@ -557,7 +557,7 @@
 					() => G.orElse(G.and(token(")"), G.succeed(L.singleton(node))), () => G.map(rec, rest => L.cons(node, rest))),
 					() => G.succeed(L.singleton(node)),
 				));
-				return G.orElse(G.and(G.orElse(token(")"), () => G.eoi()), G.succeed([])), () => G.map(rec, L.toArray));
+				return G.orElse(G.not(expr, G.succeed([])), () => G.map(rec, L.toArray));
 			};
 
 			const unaryOp = (term, op) => {

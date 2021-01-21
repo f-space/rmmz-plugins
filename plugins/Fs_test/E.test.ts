@@ -158,7 +158,7 @@ describe("parse", () => {
 		expect(parse("foo(bar(baz))")).toEqualOk(call(id("foo"), [call(id("bar"), [id("baz")])]));
 		expect(parse("foo(bar)(baz)")).toEqualOk(call(call(id("foo"), [id("bar")]), [id("baz")]));
 		expect(parse("foo(")).toMatchErr(tokenError(4, ")"));
-		expect(parse("foo(,)")).toMatchErr(tokenError(4, "expression"));
+		expect(parse("foo(,)")).toMatchErr(tokenError(4, ")"));
 		expect(parse("foo(bar,,)")).toMatchErr(tokenError(8, "expression"));
 	});
 
