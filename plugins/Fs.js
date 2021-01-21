@@ -443,40 +443,59 @@
 		const BOOLEAN = 'boolean';
 		const ANY = 'any';
 
-		const tokenize = (() => {
+		const Lexer = (() => {
 			const RE_SPACING = /^[ \r\n]*/;
 			const RE_IDENTIFIER = /^[a-z$][a-z0-9$_]*/i;
 			const RE_NUMBER = /^(?:\d+(?:\.\d*)?|\.\d+)(?:e[+\-]?\d+)?/i;
-			const RE_SYMBOL = /^(?:[%()+,\-./:?\[\]]|!(?:==)?|&&|\*\*?|<=?|===|>=?|\|\|)/;
 			const RE_UNKNOWN = /^(?:[a-z0-9$_]+|[\p{L}\p{N}\p{Pc}\p{M}\p{Cf}]+|[\p{P}\p{S}]+|[^ \r\n]+)/iu;
 
-			const make = (type, start, end) => ({ type, start, end });
+			const next = (type, token, position) => {
+				const start = position;
+				const end = position + token.length;
+				return [{ type, start, end }, end];
+			};
 
-			const match = (re, fn) => G.token((source, position) => {
-				const match = source.slice(position).match(re);
-				return match !== null ? R.ok(fn(match[0], position)) : R.err(undefined);
+			const symbol = symbol => G.token((source, position) => {
+				return source.startsWith(symbol, position) ? R.ok(next(symbol, symbol, position)) : R.err(symbol);
 			});
-			const skip = re => match(re, (token, start) => [undefined, start + token.length]);
-			const symbol = re => match(re, (token, start) => next(token, start, start + token.length));
-			const word = (type, re) => match(re, (token, start) => next(type, start, start + token.length));
-			const next = (type, start, end) => [make(type, start, end), end];
 
-			const spacing = skip(RE_SPACING);
-			const token = G.oneOf([
-				word('identifier', RE_IDENTIFIER),
-				word('number', RE_NUMBER),
-				symbol(RE_SYMBOL),
-				word('unknown', RE_UNKNOWN),
-			]);
-			const tokenList = G.many(G.andThen(spacing, () => token));
-			const lexer = G.mk(tokenList, { noCache: true });
+			const regexp = (type, re) => G.memo(G.token((source, position) => {
+				const match = source.slice(position).match(re);
+				return match !== null ? R.ok(next(type, match[0], position)) : R.err(type);
+			}));
 
-			return source => R.unwrap(lexer(source));
+			return {
+				"!": symbol("!"),
+				"!==": symbol("!=="),
+				"%": symbol("%"),
+				"&&": symbol("&&"),
+				"(": symbol("("),
+				")": symbol(")"),
+				"*": symbol("*"),
+				"**": symbol("**"),
+				"+": symbol("+"),
+				",": symbol(","),
+				"-": symbol("-"),
+				".": symbol("."),
+				"/": symbol("/"),
+				":": symbol(":"),
+				"<": symbol("<"),
+				"<=": symbol("<="),
+				"===": symbol("==="),
+				">": symbol(">"),
+				">=": symbol(">="),
+				"?": symbol("?"),
+				"[": symbol("["),
+				"]": symbol("]"),
+				"||": symbol("||"),
+				"spacing": regexp("spacing", RE_SPACING),
+				"identifier": regexp("identifier", RE_IDENTIFIER),
+				"number": regexp("number", RE_NUMBER),
+				"unknown": regexp("unknown", RE_UNKNOWN),
+			};
 		})();
 
-		const parse = (() => {
-			const tokenError = (expected, token) => ({ expected, token });
-
+		const parser = (() => {
 			const numberNode = value => ({ type: 'number', value });
 			const identifierNode = name => ({ type: 'identifier', name });
 			const memberAccessNode = (object, property) => ({ type: 'member-access', object, property });
@@ -486,14 +505,8 @@
 			const binaryOpNode = (operator, lhs, rhs) => ({ type: 'binary-operator', operator, lhs, rhs });
 			const condOpNode = (if_, then, else_) => ({ type: 'conditional-operator', if: if_, then, else: else_ });
 
-			const token = type => G.token((source, position) => {
-				const token = position < source.length ? source[position] : undefined;
-				return token !== undefined && token.type === type ? R.ok([token, position + 1]) : R.err(tokenError(type, token));
-			});
-			const fail = type => G.token((source, position) => {
-				const token = position < source.length ? source[position] : undefined;
-				return R.err(tokenError(type, token));
-			});
+			const token = type => (parser => G.andThen(Lexer.spacing, () => parser))(Lexer[type]);
+			const fail = type => G.token(() => R.err(type));
 
 			const number = G.map(token("number"), value => numberNode(value));
 
@@ -593,9 +606,13 @@
 			const exprL1 = G.memo(binaryOpL(exprL2, token("||")));
 			const exprL0 = G.memo(condOp(exprL1, expression));
 
-			const endWith = parser => G.andThen(parser, value => G.map(G.eoi(), () => value));
+			return expression;
+		})();
 
-			return G.mk(endWith(expression));
+		const parse = (() => {
+			const tail = G.andThen(Lexer.spacing, () => G.eoi());
+			const whole = G.andThen(parser, value => G.map(tail, () => value));
+			return G.mk(whole);
 		})();
 
 		const build = (() => {
@@ -788,13 +805,7 @@
 			return root;
 		})();
 
-		const compile = (type, source) => {
-			return R.match(
-				parse(tokenize(source)),
-				ast => R.ok(build(type, source, ast)),
-				error => R.err({ source, error }),
-			);
-		};
+		const compile = (type, source) => R.map(parse(source), node => build(type, source, node));
 
 		const expect = (result, errorFormatter = defaultCompileErrorFormatter) =>
 			R.expect(result, errorFormatter);
@@ -805,21 +816,25 @@
 		const interpret = (type, source, env, parseErrorFormatter, runtimeErrorFormatter) =>
 			run(expect(compile(type, source), parseErrorFormatter), env, runtimeErrorFormatter);
 
-		const defaultCompileErrorFormatter = ({ source, error }) => {
+		const defaultCompileErrorFormatter = error => {
+			const tokenize = G.make(G.andThen(Lexer.spacing, () => Lexer.unknown));
+			const sample = (source, position) => R.match(tokenize(source, position), ([token]) => token, () => undefined);
 			const restore = (source, token) => source.slice(token.start, token.end);
-			const formatTokenError = (source, error) => {
-				const { cause: { expected, token } } = error;
+			const formatTokenError = error => {
+				const { context: { source, position }, cause: expected } = error;
+				const token = sample(source, position);
 				const found = token !== undefined ? `"${restore(source, token)}"` : "no more tokens";
 				return `'${expected}' expected, but ${found} found`;
 			};
-			const formatEoiError = (source, error) => {
-				const { context: { source: tokens, position } } = error;
-				const found = `"${restore(source, tokens[position])}"`;
+			const formatEoiError = error => {
+				const { context: { source, position } } = error;
+				const token = sample(source, position);
+				const found = `"${restore(source, token)}"`;
 				return `end-of-input expected, but ${found} found`;
 			};
 			switch (error?.type) {
-				case 'token': return formatTokenError(source, error);
-				case 'eoi': return formatEoiError(source, error);
+				case 'token': return formatTokenError(error);
+				case 'eoi': return formatEoiError(error);
 				default: return `unknown error: ${S.debug(error)}`;
 			}
 		};
@@ -839,7 +854,8 @@
 			NUMBER,
 			BOOLEAN,
 			ANY,
-			tokenize,
+			Lexer,
+			parser,
 			parse,
 			build,
 			compile,

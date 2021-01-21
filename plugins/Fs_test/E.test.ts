@@ -1,108 +1,93 @@
 import "./JestExt";
 import Fs from "./Fs";
 
-const { R, E } = Fs;
+const { R, G, E } = Fs;
 
-describe("tokenize", () => {
-	type AnyToken = Fs.E.AnyToken;
-	type TokenType = Fs.E.TokenType;
+describe("token", () => {
+	type Symbol = Fs.E.Symbol;
+	type Token<T> = Fs.E.Token<T>;
+	type TokenType = Fs.E.TokenType | 'spacing';
 
-	const tokenize = E.tokenize;
+	const spacing = (source: string) => G.mk(E.Lexer.spacing)(source);
+	const symbol = <S extends Symbol>(symbol: S) => G.mk(E.Lexer[symbol] as Fs.G.PartialParser<string, Token<S>, S>)(symbol);
+	const number = (source: string) => G.mk(E.Lexer.number)(source);
+	const identifier = (source: string) => G.mk(E.Lexer.identifier)(source);
+	const unknown = (source: string) => G.mk(E.Lexer.unknown)(source);
 
 	const token = <T extends TokenType>(type: T, start: number, end: number) => ({ type, start, end });
-	const token1 = <T extends TokenType>(type: T) => [token(type, 0, type.length)];
-	const tokens = <T extends TokenType[]>(...types: [...T]) => {
-		const { tokens } = types.reduce(({ tokens, start }, type) => {
-			const end = start + type.length;
-			return { tokens: [...tokens, token(type, start, end)], start: end };
-		}, { tokens: [] as AnyToken[], start: 0 });
-		return tokens;
-	};
-	const num = (start: number, end: number) => token('number', start, end);
-	const num1 = (s: string) => [num(0, s.length)];
-	const id = (start: number, end: number) => token('identifier', start, end);
-	const id1 = (s: string) => [id(0, s.length)];
-	const unk = (start: number, end: number) => token('unknown', start, end);
-	const unk1 = (s: string) => [unk(0, s.length)];
 
 	test("spacing", () => {
-		expect(tokenize("")).toEqual([]);
-		expect(tokenize("    ")).toEqual([]);
-		expect(tokenize("\r\n")).toEqual([]);
-		expect(tokenize("a \r\nb\n\r c")).toMatchObject({ length: 3 });
+		expect(spacing("")).toEqualOk(token('spacing', 0, 0));
+		expect(spacing("    ")).toEqualOk(token('spacing', 0, 4));
+		expect(spacing("\r\n")).toEqualOk(token('spacing', 0, 2));
 	});
 
 	test("symbol", () => {
-		expect(tokenize("!")).toEqual(token1("!"));
-		expect(tokenize("+")).toEqual(token1("+"));
-		expect(tokenize("-")).toEqual(token1("-"));
-		expect(tokenize("*")).toEqual(token1("*"));
-		expect(tokenize("/")).toEqual(token1("/"));
-		expect(tokenize("%")).toEqual(token1("%"));
-		expect(tokenize("**")).toEqual(token1("**"));
-		expect(tokenize("===")).toEqual(token1("==="));
-		expect(tokenize("!==")).toEqual(token1("!=="));
-		expect(tokenize("<=")).toEqual(token1("<="));
-		expect(tokenize(">=")).toEqual(token1(">="));
-		expect(tokenize("<")).toEqual(token1("<"));
-		expect(tokenize(">")).toEqual(token1(">"));
-		expect(tokenize("&&")).toEqual(token1("&&"));
-		expect(tokenize("||")).toEqual(token1("||"));
-		expect(tokenize("(")).toEqual(token1("("));
-		expect(tokenize(")")).toEqual(token1(")"));
-		expect(tokenize("[")).toEqual(token1("["));
-		expect(tokenize("]")).toEqual(token1("]"));
-		expect(tokenize(",")).toEqual(token1(","));
-		expect(tokenize(".")).toEqual(token1("."));
-		expect(tokenize("?")).toEqual(token1("?"));
-		expect(tokenize(":")).toEqual(token1(":"));
-
-		expect(tokenize("!!==!!")).toEqual(tokens("!", "!==", "!", "!"));
-		expect(tokenize("*******")).toEqual(tokens("**", "**", "**", "*"));
-		expect(tokenize("<====>")).toEqual(tokens("<=", "===", ">"));
+		expect(symbol("!")).toEqualOk(token('!', 0, 1));
+		expect(symbol("+")).toEqualOk(token('+', 0, 1));
+		expect(symbol("-")).toEqualOk(token('-', 0, 1));
+		expect(symbol("*")).toEqualOk(token('*', 0, 1));
+		expect(symbol("/")).toEqualOk(token('/', 0, 1));
+		expect(symbol("%")).toEqualOk(token('%', 0, 1));
+		expect(symbol("**")).toEqualOk(token('**', 0, 2));
+		expect(symbol("===")).toEqualOk(token('===', 0, 3));
+		expect(symbol("!==")).toEqualOk(token('!==', 0, 3));
+		expect(symbol("<=")).toEqualOk(token('<=', 0, 2));
+		expect(symbol(">=")).toEqualOk(token('>=', 0, 2));
+		expect(symbol("<")).toEqualOk(token('<', 0, 1));
+		expect(symbol(">")).toEqualOk(token('>', 0, 1));
+		expect(symbol("&&")).toEqualOk(token('&&', 0, 2));
+		expect(symbol("||")).toEqualOk(token('||', 0, 2));
+		expect(symbol("(")).toEqualOk(token('(', 0, 1));
+		expect(symbol(")")).toEqualOk(token(')', 0, 1));
+		expect(symbol("[")).toEqualOk(token('[', 0, 1));
+		expect(symbol("]")).toEqualOk(token(']', 0, 1));
+		expect(symbol(",")).toEqualOk(token(',', 0, 1));
+		expect(symbol(".")).toEqualOk(token('.', 0, 1));
+		expect(symbol("?")).toEqualOk(token('?', 0, 1));
+		expect(symbol(":")).toEqualOk(token(':', 0, 1));
 	});
 
 	test("number", () => {
-		expect(tokenize("42")).toEqual(num1("42"));
-		expect(tokenize("4.2")).toEqual(num1("4.2"));
-		expect(tokenize("0.42")).toEqual(num1("0.42"));
-		expect(tokenize("00.42")).toEqual(num1("00.42"));
-		expect(tokenize(".42")).toEqual(num1(".42"));
-		expect(tokenize("42e42")).toEqual(num1("42e42"));
-		expect(tokenize("42e+42")).toEqual(num1("42e+42"));
-		expect(tokenize("42e-42")).toEqual(num1("42e-42"));
-		expect(tokenize("42E42")).toEqual(num1("42E42"));
-		expect(tokenize("42E+42")).toEqual(num1("42E+42"));
-		expect(tokenize("42E-42")).toEqual(num1("42E-42"));
-		expect(tokenize("0123456789.9876543210")).toEqual(num1("0123456789.9876543210"));
+		expect(number("42")).toEqualOk(token('number', 0, 2));
+		expect(number("4.2")).toEqualOk(token('number', 0, 3));
+		expect(number("0.42")).toEqualOk(token('number', 0, 4));
+		expect(number("00.42")).toEqualOk(token('number', 0, 5));
+		expect(number(".42")).toEqualOk(token('number', 0, 3));
+		expect(number("42e42")).toEqualOk(token('number', 0, 5));
+		expect(number("42e+42")).toEqualOk(token('number', 0, 6));
+		expect(number("42e-42")).toEqualOk(token('number', 0, 6));
+		expect(number("42E42")).toEqualOk(token('number', 0, 5));
+		expect(number("42E+42")).toEqualOk(token('number', 0, 6));
+		expect(number("42E-42")).toEqualOk(token('number', 0, 6));
+		expect(number("0123456789.9876543210")).toEqualOk(token('number', 0, 21));
 
-		expect(tokenize("+42")).toEqual([token("+", 0, 1), num(1, 3)]);
-		expect(tokenize("-42")).toEqual([token("-", 0, 1), num(1, 3)]);
-		expect(tokenize(".e42")).not.toEqual(num1(".e42"));
+		expect(number("+42")).not.toEqualOk(token('number', 0, 3));
+		expect(number("-42")).not.toEqualOk(token('number', 0, 3));
+		expect(number(".e42")).not.toEqualOk(token('number', 0, 4));
 	});
 
 	test("identifier", () => {
-		expect(tokenize("foo")).toEqual(id1("foo"));
-		expect(tokenize("abc$123_XYZ")).toEqual(id1("abc$123_XYZ"));
-		expect(tokenize("foo$")).toEqual(id1("foo$"));
-		expect(tokenize("foo_")).toEqual(id1("foo_"));
-		expect(tokenize("foo1")).toEqual(id1("foo1"));
-		expect(tokenize("$foo")).toEqual(id1("$foo"));
-		expect(tokenize("_foo")).not.toEqual(id1("_foo"));
-		expect(tokenize("1foo")).not.toEqual(id1("1foo"));
+		expect(identifier("foo")).toEqualOk(token('identifier', 0, 3));
+		expect(identifier("abc$123_XYZ")).toEqualOk(token('identifier', 0, 11));
+		expect(identifier("foo$")).toEqualOk(token('identifier', 0, 4));
+		expect(identifier("foo_")).toEqualOk(token('identifier', 0, 4));
+		expect(identifier("foo1")).toEqualOk(token('identifier', 0, 4));
+		expect(identifier("$foo")).toEqualOk(token('identifier', 0, 4));
+		expect(identifier("_foo")).not.toEqualOk(token('identifier', 0, 4));
+		expect(identifier("1foo")).not.toEqualOk(token('identifier', 0, 4));
 	});
 
 	test("unknown", () => {
-		expect(tokenize("__proto__")).toEqual(unk1("__proto__"));
-		expect(tokenize("@_@")).toEqual(unk1("@_@"));
-		expect(tokenize("🐛🐛🐛")).toEqual(unk1("🐛🐛🐛"));
-		expect(tokenize("ひとつめ ふたつめ")).toEqual([unk(0, 4), unk(5, 9)]);
-		expect(tokenize("ひとつめ。ふたつめ")).toEqual([unk(0, 4), unk(4, 5), unk(5, 9)]);
+		expect(unknown("__proto__")).toEqualOk(token('unknown', 0, 9));
+		expect(unknown("@_@")).toEqualOk(token('unknown', 0, 3));
+		expect(unknown("🐛🐛🐛")).toEqualOk(token('unknown', 0, 6));
+		expect(unknown("ひとつめ ふたつめ")).toEqualOk(token('unknown', 0, 4));
+		expect(unknown("ひとつめ。ふたつめ")).toEqualOk(token('unknown', 0, 4));
 	});
 });
 
 describe("parse", () => {
-	type TokenType = Fs.E.TokenType;
 	type ExtTokenType = Fs.E.ExtTokenType;
 	type AnyToken = Fs.E.AnyToken;
 	type ExpressionNode = Fs.E.ExpressionNode;
@@ -112,7 +97,7 @@ describe("parse", () => {
 	type Node = ReplaceToken<ExpressionNode>;
 	type Identifier = ReplaceToken<IdentifierNode>;
 
-	const parse = (s: string) => R.map(E.parse(E.tokenize(s)), node => replaceToken(s, node));
+	const parse = (s: string) => R.map(E.parse(s), node => replaceToken(s, node));
 
 	const replaceToken = (source: string, node: ExpressionNode) => {
 		const slice = ({ start, end }: { start: number, end: number; }) => source.slice(start, end);
@@ -141,8 +126,8 @@ describe("parse", () => {
 	const binary = (operator: Fs.E.BinaryOperator, lhs: Node, rhs: Node) => ({ type: 'binary-operator' as const, operator, lhs, rhs });
 	const cond = (if_: Node, then: Node, else_: Node) => ({ type: 'conditional-operator' as const, if: if_, then, else: else_ });
 
-	const tokenError = (position: number, expected: ExtTokenType, token: TokenType | undefined) =>
-		({ type: 'token' as const, context: { position }, cause: { expected, token: token && { type: token } } });
+	const tokenError = (position: number, type: ExtTokenType) =>
+		({ type: 'token' as const, context: { position }, cause: type });
 	const eoiError = (position: number) => ({ type: 'eoi' as const, context: { position } });
 
 	test("term", () => {
@@ -153,7 +138,7 @@ describe("parse", () => {
 	test("member-access", () => {
 		expect(parse("foo.bar")).toEqualOk(member(id("foo"), id("bar")));
 		expect(parse("foo.bar.baz")).toEqualOk(member(member(id("foo"), id("bar")), id("baz")));
-		expect(parse("foo.")).toMatchErr(tokenError(2, "identifier", undefined));
+		expect(parse("foo.")).toMatchErr(tokenError(4, "identifier"));
 	});
 
 	test("element-access", () => {
@@ -161,8 +146,8 @@ describe("parse", () => {
 		expect(parse("foo[bar]")).toEqualOk(elem(id("foo"), id("bar")));
 		expect(parse("foo[bar[baz]]")).toEqualOk(elem(id("foo"), elem(id("bar"), id("baz"))));
 		expect(parse("foo[bar][baz]")).toEqualOk(elem(elem(id("foo"), id("bar")), id("baz")));
-		expect(parse("foo[]")).toMatchErr(tokenError(2, "expression", "]"));
-		expect(parse("foo[bar")).toMatchErr(tokenError(3, "]", undefined));
+		expect(parse("foo[]")).toMatchErr(tokenError(4, "expression"));
+		expect(parse("foo[bar")).toMatchErr(tokenError(7, "]"));
 	});
 
 	test("function-call", () => {
@@ -172,9 +157,9 @@ describe("parse", () => {
 		expect(parse("foo(bar, baz, qux,)")).toEqualOk(call(id("foo"), [id("bar"), id("baz"), id("qux")]));
 		expect(parse("foo(bar(baz))")).toEqualOk(call(id("foo"), [call(id("bar"), [id("baz")])]));
 		expect(parse("foo(bar)(baz)")).toEqualOk(call(call(id("foo"), [id("bar")]), [id("baz")]));
-		expect(parse("foo(")).toMatchErr(tokenError(2, ")", undefined));
-		expect(parse("foo(,)")).toMatchErr(tokenError(2, "expression", ","));
-		expect(parse("foo(bar,,)")).toMatchErr(tokenError(4, "expression", ","));
+		expect(parse("foo(")).toMatchErr(tokenError(4, ")"));
+		expect(parse("foo(,)")).toMatchErr(tokenError(4, "expression"));
+		expect(parse("foo(bar,,)")).toMatchErr(tokenError(8, "expression"));
 	});
 
 	test("unary-operator", () => {
@@ -182,7 +167,7 @@ describe("parse", () => {
 		expect(parse("+42")).toEqualOk(unary("+", num("42")));
 		expect(parse("-42")).toEqualOk(unary("-", num("42")));
 		expect(parse("++42")).toEqualOk(unary("+", unary("+", num("42"))));
-		expect(parse("+")).toMatchErr(tokenError(1, "expression", undefined));
+		expect(parse("+")).toMatchErr(tokenError(1, "expression"));
 	});
 
 	test("binary-operator", () => {
@@ -200,17 +185,17 @@ describe("parse", () => {
 		expect(parse("12 > 34 > 56")).toEqualOk(binary(">", binary(">", num("12"), num("34")), num("56")));
 		expect(parse("12 && 34 && 56")).toEqualOk(binary("&&", binary("&&", num("12"), num("34")), num("56")));
 		expect(parse("12 || 34 || 56")).toEqualOk(binary("||", binary("||", num("12"), num("34")), num("56")));
-		expect(parse("12 *")).toMatchErr(tokenError(2, "expression", undefined));
-		expect(parse("12 **")).toMatchErr(tokenError(2, "expression", undefined));
+		expect(parse("12 *")).toMatchErr(tokenError(4, "expression"));
+		expect(parse("12 **")).toMatchErr(tokenError(5, "expression"));
 	});
 
 	test("conditional-operator", () => {
 		expect(parse("12 ? 34 : 56")).toEqualOk(cond(num("12"), num("34"), num("56")));
 		expect(parse("12 ? 34 : 56 ? 78 : 90")).toEqualOk(cond(num("12"), num("34"), cond(num("56"), num("78"), num("90"))));
 		expect(parse("12 ? 34 ? 56 : 78 : 90")).toEqualOk(cond(num("12"), cond(num("34"), num("56"), num("78")), num("90")));
-		expect(parse("12 ?")).toMatchErr(tokenError(2, "expression", undefined));
-		expect(parse("12 ? 34")).toMatchErr(tokenError(3, ":", undefined));
-		expect(parse("12 ? 34 :")).toMatchErr(tokenError(4, "expression", undefined));
+		expect(parse("12 ?")).toMatchErr(tokenError(4, "expression"));
+		expect(parse("12 ? 34")).toMatchErr(tokenError(7, ":"));
+		expect(parse("12 ? 34 :")).toMatchErr(tokenError(9, "expression"));
 	});
 
 	test("priority", () => {
@@ -227,7 +212,15 @@ describe("parse", () => {
 	});
 
 	test("eoi", () => {
-		expect(parse("foo bar")).toMatchErr(eoiError(1));
+		expect(parse("foo ")).toEqualOk(id("foo"));
+		expect(parse("foo bar")).toMatchErr(eoiError(4));
+	});
+
+	test("parser", () => {
+		expect(G.make(E.parser)("foo bar baz", 3)).toEqualOk([
+			{ type: 'identifier', name: { type: 'identifier', start: 4, end: 7 } },
+			7,
+		]);
 	});
 });
 
@@ -235,7 +228,7 @@ describe("build", () => {
 	type ExpressionTypeKey = Fs.E.ExpressionTypeKey;
 
 	const evalAs = (type: ExpressionTypeKey) => (source: string, env: object) =>
-		R.andThen(E.parse(E.tokenize(source)), node => E.build(type, source, node)(env));
+		R.andThen(E.parse(source), node => E.build(type, source, node)(env));
 	const evalNumber = evalAs(E.NUMBER);
 	const evalBoolean = evalAs(E.BOOLEAN);
 	const evalAny = evalAs(E.ANY);
@@ -383,7 +376,7 @@ describe("build", () => {
 describe("other", () => {
 	test("compile", () => {
 		expect(R.andThen(E.compile(E.NUMBER, "foo"), f => f({ foo: 42 }))).toEqualOk(42);
-		expect(E.compile(E.NUMBER, "")).toEqual(R.mapErr(E.parse([]), error => ({ source: "", error })));
+		expect(E.compile(E.NUMBER, "")).toEqual(E.parse(""));
 	});
 
 	test("expect", () => {

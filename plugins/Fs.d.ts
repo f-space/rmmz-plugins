@@ -284,9 +284,10 @@ declare namespace E {
 	export type Unknown = 'unknown';
 	export type PseudoToken = 'expression';
 
-	export type TokenType = Term | UnaryOperator | BinaryOperator | OtherSymbol | Unknown;
+	export type Symbol = UnaryOperator | BinaryOperator | OtherSymbol;
+	export type TokenType = Term | Symbol | Unknown;
 	export type ExtTokenType = TokenType | PseudoToken;
-	export type Token<T extends TokenType> = {
+	export type Token<T> = {
 		type: T;
 		start: number;
 		end: number;
@@ -347,7 +348,7 @@ declare namespace E {
 		| ConditionalOperatorNode;
 
 	export type ParseError = TokenError | EoiError;
-	export type TokenError = G.TokenError<string, { expected: ExtTokenType; token: AnyToken | undefined; }>;
+	export type TokenError = G.TokenError<string, ExtTokenType>;
 	export type EoiError = G.EoiError<string>;
 
 	export type RuntimeError =
@@ -378,14 +379,17 @@ declare namespace E {
 		target: string;
 	};
 
-	export type CompileError = { source: string, error: ParseError; };
+	export type CompileError = ParseError;
 	export type CompileResult<T> = R.Result<Evaluator<T>, CompileError>;
+	export type Tokenizer<T> = G.PartialParser<string, Token<T>, T>;
+	export type Parser = G.PartialParser<string, ExpressionNode, TokenError>;
 	export type Evaluator<T> = (env: object) => R.Result<T, RuntimeError>;
 	export type CompileErrorFormatter = (error: CompileError) => string;
 	export type RuntimeErrorFormatter = (error: RuntimeError) => string;
 
-	const tokenize: (source: string) => AnyToken[];
-	const parse: (source: readonly AnyToken[]) => R.Result<ExpressionNode, ParseError>;
+	const Lexer: { [P in TokenType | 'spacing']: Tokenizer<P> };
+	const parser: Parser;
+	const parse: (source: string) => R.Result<ExpressionNode, ParseError>;
 	const build: <K extends ExpressionTypeKey>(type: K, source: string, node: ExpressionNode) => Evaluator<ExpressionTypeMap[K]>;
 	const compile: <K extends ExpressionTypeKey>(type: K, source: string) => CompileResult<ExpressionTypeMap[K]>;
 	const expect: <T>(result: CompileResult<T>, errorFormatter?: CompileErrorFormatter) => Evaluator<T>;
@@ -404,7 +408,8 @@ declare namespace E {
 		NUMBER,
 		BOOLEAN,
 		ANY,
-		tokenize,
+		Lexer,
+		parser,
 		parse,
 		build,
 		compile,
