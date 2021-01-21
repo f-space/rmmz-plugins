@@ -971,21 +971,21 @@
 		const oneOf = parsers => G.memo(G.oneOf(parsers));
 		const validate = (parser, validator) => G.memo(G.validate(parser, validator));
 
-		const symbol = symbol => G.memo(G.token((source, start) => {
-			return source.startsWith(symbol, start)
-				? R.ok([symbol, start + symbol.length])
-				: R.err(symbolError(source, start, symbol));
+		const symbol = symbol => G.memo(G.token((source, position) => {
+			return source.startsWith(symbol, position)
+				? R.ok([symbol, position + symbol.length])
+				: R.err(symbolError(source, position, symbol));
 		}));
 
-		const regexp = (name, re, fn) => G.memo(G.token((source, start) => {
-			const slice = source.slice(start);
+		const regexp = (name, re, fn) => G.memo(G.token((source, position) => {
+			const slice = source.slice(position);
 			const match = slice.match(re);
 			if (match !== null && match.index === 0) {
 				const token = match[0];
 				const value = fn !== undefined ? fn(...match) : token;
-				return R.ok([value, start + token.length]);
+				return R.ok([value, position + token.length]);
 			} else {
-				return R.err(regexpError(source, start, name, re));
+				return R.err(regexpError(source, position, name, re));
 			}
 		}));
 
