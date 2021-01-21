@@ -659,7 +659,7 @@
 			const unary = liftL1;
 			const binary = liftL2;
 
-			const root = (type, source, node) => {
+			const build = (type, source, node) => {
 				const ensureType = typeContract(type);
 				const evalExpr = expression(source, node);
 				return env => ensureType(evalExpr(env));
@@ -803,7 +803,7 @@
 				return env => R.andThen(isBoolean(evalIf(env)), value => value ? evalThen(env) : evalElse(env));
 			};
 
-			return root;
+			return build;
 		})();
 
 		const compile = (type, source) => R.map(parse(source), node => build(type, source, node));
