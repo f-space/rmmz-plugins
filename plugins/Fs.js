@@ -446,7 +446,6 @@
 
 		const Lexer = (() => {
 			const RE_WHITESPACE = /^[ \t\r\n]*/;
-			const RE_IDENTIFIER = /^[a-z$][a-z0-9$_]*/i;
 			const RE_DECIMAL_DIGITS = `(?:[0-9]+(?:_[0-9]+)*)`;
 			const RE_DECIMAL_INTEGER_LITERAL = `(?:0(?![bBoOxX])|[1-9](?:_?${RE_DECIMAL_DIGITS})?)`;
 			const RE_EXPORNENT_PART = `(?:[eE][+-]?${RE_DECIMAL_DIGITS})`;
@@ -460,6 +459,7 @@
 			const RE_NUMERIC_LITERAL = `(?:${RE_DECIMAL_LITERAL}|${RE_NON_DECIMAL_INTEGER_LITERAL})`;
 			const RE_NUMBER = new RegExp(`^${RE_NUMERIC_LITERAL}`);
 			const RE_BOOLEAN = /^(?:true|false)\b/;
+			const RE_IDENTIFIER = /^[a-z$][a-z0-9$_]*/i;
 			const RE_UNKNOWN = /^(?:[a-z0-9$_]+|[\p{L}\p{N}\p{Pc}\p{M}\p{Cf}]+|[\p{P}\p{S}]+|[^ \t\r\n]+)/iu;
 
 			const next = (type, text, position) => [{ type, text, position }, position + text.length];
@@ -498,9 +498,9 @@
 				"]": symbol("]"),
 				"||": symbol("||"),
 				"whitespace": regexp("whitespace", RE_WHITESPACE),
-				"identifier": regexp("identifier", RE_IDENTIFIER),
 				"number": regexp("number", RE_NUMBER),
 				"boolean": regexp("boolean", RE_BOOLEAN),
+				"identifier": regexp("identifier", RE_IDENTIFIER),
 				"unknown": regexp("unknown", RE_UNKNOWN),
 			};
 		})();
