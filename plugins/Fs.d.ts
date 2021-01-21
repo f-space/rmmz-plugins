@@ -229,8 +229,8 @@ declare namespace G {
 	const validate: <S, T, U, E, V>(parser: PartialParser<S, T, E>, validator: Validator<T, U, V>)
 		=> PartialParser<S, U, E | ValidationError<S, V>>;
 	const memo: <S, T, E>(parser: PartialParser<S, T, E>) => PartialParser<S, T, E>;
-	const make: <S, T, E>(parser: PartialParser<S, T, E>, options?: ParseOptions) => Parser<S, T, E>;
-	const mk: <S, T, E>(parser: PartialParser<S, T, E>, options?: ParseOptions) => SimpleParser<S, T, E>;
+	const make: <S extends Source, T, E>(parser: PartialParser<S, T, E>, options?: ParseOptions) => Parser<S, T, E>;
+	const mk: <S extends Source, T, E>(parser: PartialParser<S, T, E>, options?: ParseOptions) => SimpleParser<S, T, E>;
 	const parse: <S extends Source, T, E>(source: S, parser: SimpleParser<S, T, E>, errorFormatter?: ErrorFormatter<E>) => T;
 	const makeDefaultErrorFormatter: <C, V>(
 		tokenErrorFormatter: ErrorFormatter<C>,

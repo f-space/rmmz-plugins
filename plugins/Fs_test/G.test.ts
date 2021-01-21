@@ -3,9 +3,10 @@ import Fs from "./Fs";
 
 const { O, R, U, G } = Fs;
 
+type Source = Fs.G.Source;
 type PartialParser<S, T, E> = Fs.G.PartialParser<S, T, E>;
 
-const parse = <S, T, E>(source: S, parser: PartialParser<S, T, E>) => G.mk(parser)(source);
+const parse = <S extends Source, T, E>(source: S, parser: PartialParser<S, T, E>) => G.mk(parser)(source);
 
 const tokenError = <C>(position: number, cause: C) => ({ type: 'token' as const, context: { position }, cause });
 const eoiError = (position: number) => ({ type: 'eoi' as const, context: { position } });
