@@ -294,8 +294,8 @@ declare namespace E {
 	export type LexTokenType = TokenType | Whitespace;
 	export type Token<T> = {
 		type: T;
-		start: number;
-		end: number;
+		text: string;
+		position?: number;
 	};
 	export type AnyToken = Token<TokenType>;
 	export type NumberToken = Token<'number'>;
@@ -395,7 +395,7 @@ declare namespace E {
 	const Lexer: { [T in LexTokenType]: Tokenizer<T> };
 	const parser: Parser;
 	const parse: (source: string) => R.Result<AstNode, ParseError>;
-	const build: <T extends Type>(type: T, source: string, node: AstNode) => Evaluator<T>;
+	const build: <T extends Type>(type: T, node: AstNode) => Evaluator<T>;
 	const compile: <T extends Type>(type: T, source: string) => CompileResult<T>;
 	const expect: <T>(result: CompileResult<T>, errorFormatter?: CompileErrorFormatter) => Evaluator<T>;
 	const run: <T>(evaluator: Evaluator<T>, env: object, errorFormatter?: RuntimeErrorFormatter) => Eval<T>;

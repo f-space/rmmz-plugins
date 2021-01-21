@@ -450,11 +450,7 @@
 			const RE_NUMBER = /^(?:\d+(?:\.\d*)?|\.\d+)(?:e[+\-]?\d+)?/i;
 			const RE_UNKNOWN = /^(?:[a-z0-9$_]+|[\p{L}\p{N}\p{Pc}\p{M}\p{Cf}]+|[\p{P}\p{S}]+|[^ \r\n]+)/iu;
 
-			const next = (type, token, position) => {
-				const start = position;
-				const end = position + token.length;
-				return [{ type, start, end }, end];
-			};
+			const next = (type, text, position) => [{ type, text, position }, position + text.length];
 
 			const symbol = symbol => G.token((source, position) => {
 				return source.startsWith(symbol, position) ? R.ok(next(symbol, symbol, position)) : R.err(symbol);
@@ -635,7 +631,6 @@
 			const builtinValue = name => Math.hasOwnProperty(name) ? O.some(Math[name]) : O.none();
 			const blockedMember = name => MEMBER_BLOCK_LIST.includes(name) ? O.some(`${name} property`) : O.none();
 			const blockedValue = value => VALUE_BLOCK_LIST.has(value) ? O.some(VALUE_BLOCK_LIST.get(value)) : O.none();
-			const restore = (source, token) => source.slice(token.start, token.end);
 
 			const bind = fn => a => R.andThen(a, fn);
 			const bindL2 = fn => (a, b) => R.andThen(a(), a => R.andThen(b(), b => fn(a, b)));
@@ -659,9 +654,9 @@
 			const unary = liftL1;
 			const binary = liftL2;
 
-			const build = (type, source, node) => {
+			const build = (type, node) => {
 				const ensureType = typeContract(type);
-				const evalExpr = expression(source, node);
+				const evalExpr = expression(node);
 				return env => ensureType(evalExpr(env));
 			};
 
@@ -674,28 +669,28 @@
 				}
 			};
 
-			const expression = (source, node) => {
+			const expression = node => {
 				const { type } = node;
 				switch (type) {
-					case 'number': return number(source, node);
-					case 'identifier': return identifier(source, node);
-					case 'member-access': return memberAccess(source, node);
-					case 'element-access': return elementAccess(source, node);
-					case 'function-call': return functionCall(source, node);
-					case 'unary-operator': return unaryOp(source, node);
-					case 'binary-operator': return binaryOp(source, node);
-					case 'conditional-operator': return condOp(source, node);
+					case 'number': return number(node);
+					case 'identifier': return identifier(node);
+					case 'member-access': return memberAccess(node);
+					case 'element-access': return elementAccess(node);
+					case 'function-call': return functionCall(node);
+					case 'unary-operator': return unaryOp(node);
+					case 'binary-operator': return binaryOp(node);
+					case 'conditional-operator': return condOp(node);
 					default: return panic(`invalid AST node type: ${type}`);
 				}
 			};
 
-			const number = (source, node) => {
-				const value = Number.parseFloat(restore(source, node.value));
+			const number = node => {
+				const value = Number.parseFloat(node.value.text);
 				return () => R.ok(value);
 			};
 
-			const identifier = (source, node) => {
-				const name = restore(source, node.name);
+			const identifier = node => {
+				const name = node.name.text;
 				return O.match(
 					builtinValue(name),
 					value => () => R.ok(value),
@@ -703,13 +698,13 @@
 				);
 			};
 
-			const memberAccess = (source, node) => {
-				const { evalThis, evalExpr } = memberAccessCore(source, node);
+			const memberAccess = node => {
+				const { evalThis, evalExpr } = memberAccessCore(node);
 				return env => evalExpr(evalThis(env), env);
 			};
-			const memberAccessCore = (source, node) => {
-				const evalObject = expression(source, node.object);
-				const property = restore(source, node.property.name);
+			const memberAccessCore = node => {
+				const evalObject = expression(node.object);
+				const property = node.property.name.text;
 				return {
 					evalThis: evalObject,
 					evalExpr: O.match(
@@ -720,35 +715,35 @@
 				};
 			};
 
-			const elementAccess = (source, node) => {
-				const { evalThis, evalExpr } = elementAccessCore(source, node);
+			const elementAccess = node => {
+				const { evalThis, evalExpr } = elementAccessCore(node);
 				return env => evalExpr(evalThis(env), env);
 			};
-			const elementAccessCore = (source, node) => {
-				const evalArray = expression(source, node.array);
-				const evalIndex = expression(source, node.index);
+			const elementAccessCore = node => {
+				const evalArray = expression(node.array);
+				const evalIndex = expression(node.index);
 				return {
 					evalThis: evalArray,
 					evalExpr: (this_, env) => secure(element(() => isArray(this_), () => isInteger(evalIndex(env)))),
 				};
 			};
 
-			const functionCall = (source, node) => {
-				const callee = functionCallee(source, node.callee);
-				const evalArgs = functionArgs(source, node.args);
+			const functionCall = node => {
+				const callee = functionCallee(node.callee);
+				const evalArgs = functionArgs(node.args);
 				return callee.isStatic
 					? functionStaticCall(callee.eval, evalArgs)
 					: functionMemberCall(callee.evalThis, callee.evalExpr, evalArgs);
 			};
-			const functionCallee = (source, node) => {
+			const functionCallee = node => {
 				switch (node.type) {
-					case 'member-access': return { isStatic: false, ...memberAccessCore(source, node) };
-					case 'element-access': return { isStatic: false, ...elementAccessCore(source, node) };
-					default: return { isStatic: true, eval: expression(source, node) };
+					case 'member-access': return { isStatic: false, ...memberAccessCore(node) };
+					case 'element-access': return { isStatic: false, ...elementAccessCore(node) };
+					default: return { isStatic: true, eval: expression(node) };
 				}
 			};
-			const functionArgs = (source, nodes) => {
-				const evalList = nodes.map(node => expression(source, node));
+			const functionArgs = nodes => {
+				const evalList = nodes.map(node => expression(node));
 				return env => R.allL(evalList.map(evalArg => () => evalArg(env)));
 			};
 			const functionStaticCall = (evalCallee, evalArgs) => {
@@ -761,9 +756,9 @@
 				};
 			};
 
-			const unaryOp = (source, node) => {
-				const operator = restore(source, node.operator);
-				const evalExpr = expression(source, node.expr);
+			const unaryOp = node => {
+				const operator = node.operator.text;
+				const evalExpr = expression(node.expr);
 				switch (operator) {
 					case '+': return env => unary(a => +a)(() => isNumber(evalExpr(env)));
 					case '-': return env => unary(a => -a)(() => isNumber(evalExpr(env)));
@@ -772,10 +767,10 @@
 				}
 			};
 
-			const binaryOp = (source, node) => {
-				const operator = restore(source, node.operator);
-				const evalL = expression(source, node.lhs);
-				const evalR = expression(source, node.rhs);
+			const binaryOp = node => {
+				const operator = node.operator.text;
+				const evalL = expression(node.lhs);
+				const evalR = expression(node.rhs);
 				switch (operator) {
 					case '+': return env => binary((a, b) => a + b)(() => isNumber(evalL(env)), () => isNumber(evalR(env)));
 					case '-': return env => binary((a, b) => a - b)(() => isNumber(evalL(env)), () => isNumber(evalR(env)));
@@ -795,18 +790,18 @@
 				}
 			};
 
-			const condOp = (source, node) => {
+			const condOp = node => {
 				const { if: if_, then, else: else_ } = node;
-				const evalIf = expression(source, if_);
-				const evalThen = expression(source, then);
-				const evalElse = expression(source, else_);
+				const evalIf = expression(if_);
+				const evalThen = expression(then);
+				const evalElse = expression(else_);
 				return env => R.andThen(isBoolean(evalIf(env)), value => value ? evalThen(env) : evalElse(env));
 			};
 
 			return build;
 		})();
 
-		const compile = (type, source) => R.map(parse(source), node => build(type, source, node));
+		const compile = (type, source) => R.map(parse(source), node => build(type, node));
 
 		const expect = (result, errorFormatter = defaultCompileErrorFormatter) =>
 			R.expect(result, errorFormatter);
@@ -820,17 +815,16 @@
 		const defaultCompileErrorFormatter = error => {
 			const tokenize = G.make(G.andThen(Lexer.whitespace, () => Lexer.unknown));
 			const sample = (source, position) => R.match(tokenize(source, position), ([token]) => token, () => undefined);
-			const restore = (source, token) => source.slice(token.start, token.end);
 			const formatTokenError = error => {
 				const { context: { source, position }, cause: expected } = error;
 				const token = sample(source, position);
-				const found = token !== undefined ? `"${restore(source, token)}"` : "no more tokens";
+				const found = token !== undefined ? `"${token.text}"` : "no more tokens";
 				return `'${expected}' expected, but ${found} found`;
 			};
 			const formatEoiError = error => {
 				const { context: { source, position } } = error;
 				const token = sample(source, position);
-				const found = `"${restore(source, token)}"`;
+				const found = `"${token.text}"`;
 				return `end-of-input expected, but ${found} found`;
 			};
 			switch (error?.type) {
@@ -1024,12 +1018,12 @@
 		const expression = (type, errorFormatter) => {
 			const pipe = (a, fn) => fn(a);
 			const parse = G.make(E.parser);
-			const build = (source, node) => E.build(type, source, node);
+			const build = node => E.build(type, node);
 			const make = evaluator => env => E.run(evaluator, env, errorFormatter);
 			return G.memo(G.token((source, position) =>
 				R.mapBoth(
 					parse(source, position),
-					([node, next]) => [pipe(build(source, node), make), next],
+					([node, next]) => [pipe(build(node), make), next],
 					cause => expressionError(source, position, cause),
 				)
 			));
