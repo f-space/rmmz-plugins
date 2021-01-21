@@ -278,7 +278,7 @@ declare namespace E {
 	};
 
 	export type Type = keyof TypeMap;
-	export type Eval<T extends Type> = TypeMap[T];
+	export type Eval<T> = T extends Type ? TypeMap[T] : never;
 
 	export type Term = 'number' | 'identifier';
 	export type UnaryOperator = '+' | '-' | '!';
@@ -386,17 +386,17 @@ declare namespace E {
 	export type CompileResult<T> = R.Result<Evaluator<T>, CompileError>;
 	export type Tokenizer<T> = G.PartialParser<string, Token<T>, T>;
 	export type Parser = G.PartialParser<string, AstNode, TokenError>;
-	export type Evaluator<T> = (env: object) => R.Result<T, RuntimeError>;
+	export type Evaluator<T> = (env: object) => R.Result<Eval<T>, RuntimeError>;
 	export type CompileErrorFormatter = (error: CompileError) => string;
 	export type RuntimeErrorFormatter = (error: RuntimeError) => string;
 
 	const Lexer: { [P in TokenType | 'spacing']: Tokenizer<P> };
 	const parser: Parser;
 	const parse: (source: string) => R.Result<AstNode, ParseError>;
-	const build: <T extends Type>(type: T, source: string, node: AstNode) => Evaluator<Eval<T>>;
-	const compile: <T extends Type>(type: T, source: string) => CompileResult<Eval<T>>;
+	const build: <T extends Type>(type: T, source: string, node: AstNode) => Evaluator<T>;
+	const compile: <T extends Type>(type: T, source: string) => CompileResult<T>;
 	const expect: <T>(result: CompileResult<T>, errorFormatter?: CompileErrorFormatter) => Evaluator<T>;
-	const run: <T>(evaluator: Evaluator<T>, env: object, errorFormatter?: RuntimeErrorFormatter) => T;
+	const run: <T>(evaluator: Evaluator<T>, env: object, errorFormatter?: RuntimeErrorFormatter) => Eval<T>;
 	const interpret: <T extends Type>(
 		type: T,
 		source: string,
@@ -449,7 +449,7 @@ declare namespace P {
 		cause: V;
 	};
 
-	export type Expression<T> = (env: object) => T;
+	export type Expression<T> = (env: object) => E.Eval<T>;
 	export type Archetype = Parser<any, any> | readonly [Archetype] | { [key: string]: Archetype; };
 	export type Validator<T, U, V> = (value: T) => R.Result<U, V>;
 	export type ErrorFormatter<E> = (error: E) => string;
@@ -487,7 +487,7 @@ declare namespace P {
 	const struct: <P extends readonly EntryParser<any, any, any>[]>(parsers: readonly [...P]) => Struct<P>;
 	const entry: <K extends string, T, E>(key: K, parser: Parser<T, E>) => EntryParser<K, T, E>;
 	const expression: <T extends E.Type>(type: T, errorFormatter?: E.RuntimeErrorFormatter)
-		=> Parser<Expression<E.Eval<T>>, ExpressionError>;
+		=> Parser<Expression<T>, ExpressionError>;
 	const make: <A extends Archetype>(archetype: A) => Make<A>;
 	const parse: <T, E>(s: string, parser: Parser<T, E>, errorFormatter?: ErrorFormatter<E>) => T;
 	const parseAll: <P extends { [key: string]: Parser<any, any>; }>(
@@ -556,7 +556,7 @@ declare namespace N {
 		cause: E.Parser extends PartialParser<any, infer E> ? E : never;
 	};
 
-	export type Expression<T> = (env: object) => T;
+	export type Expression<T> = (env: object) => E.Eval<T>;
 	export type Validator<T, U, V> = G.Validator<T, U, V>;
 	export type ErrorFormatter<E> = G.ErrorFormatter<E>;
 
@@ -576,7 +576,7 @@ declare namespace N {
 	const regexp: <T = string>(name: string, re: RegExp, fn?: (...captures: string[]) => T)
 		=> PartialParser<T, TokenError<RegexpError>>;
 	const expression: <T extends E.Type>(type: T, errorFormatter?: E.RuntimeErrorFormatter)
-		=> PartialParser<Expression<E.Eval<T>>, TokenError<ExpressionError>>;
+		=> PartialParser<Expression<T>, TokenError<ExpressionError>>;
 	const spacing: PartialParser<string, never>;
 	const spaces: PartialParser<string, TokenError<RegexpError>>;
 	const natural: PartialParser<number, TokenError<RegexpError>>;
